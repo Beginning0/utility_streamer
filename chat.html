@@ -89,34 +89,20 @@
 
     <script src="https://unpkg.com/@streamerbot/client@1.5.1/dist/streamerbot-client.js"></script>
     <script>
-        // --- PREGUNTA SOBRE LOCALSTORAGE ---
-        // localStorage tiene un límite de espacio, pero es bastante grande para texto,
-        // usualmente entre 5 y 10 MB por dominio. Para guardar puntos y nombres de
-        // usuarios, es prácticamente imposible que llegues al límite. ¡No te preocupes por eso!
-
         // --- CONFIGURACIÓN DEL SISTEMA DE PUNTOS Y RANGOS ---
         const POINTS_PER_MESSAGE = 1;
         const RANKS = [
-            { name: 'Novato', points: 0 },
-            { name: 'RC1', points: 500 },
-            { name: 'RC2', points: 1500 },
-            { name: 'RC3', points: 3000 },
-            { name: 'RC4', points: 50000 },
-            { name: 'RC5', points: 75000 },
-            { name: 'RC6', points: 100000 },
-            { name: 'RC7', points: 150000 }, // <-- Rango que otorga voz
-            { name: 'G1', points: 250000 },
-            { name: 'G2', points: 400000 },
-            { name: 'G3', points: 600000 }
-            // Puedes agregar más rangos aquí
-        ].sort((a, b) => b.points - a.points); // Ordenar de mayor a menor para facilitar la búsqueda
-
+            { name: 'Novato', points: 0 }, { name: 'RC1', points: 50 }, { name: 'RC2', points: 150 },
+            { name: 'RC3', points: 300 }, { name: 'RC4', points: 500 }, { name: 'RC5', points: 750 },
+            { name: 'RC6', points: 1000 }, { name: 'RC7', points: 1500 }, { name: 'G1', points: 2500 },
+            { name: 'G2', points: 4000 }, { name: 'G3', points: 6000 }
+        ].sort((a, b) => b.points - a.points);
         const RANK_FOR_VOICE = 'RC7';
 
         // --- ESTADO GLOBAL DE LA APLICACIÓN ---
         const chat = document.getElementById('chat');
-        let usersData = {}; // { 'username_lowercase': { points: 10, rank: 'Novato', displayName: 'Username' }, ... }
-        let manualVoiceUsers = new Set(); // Usuarios con voz manual (en minúsculas)
+        let usersData = {};
+        let manualVoiceUsers = new Set();
         let selectedVoice = '';
         let voices = [];
         let volume = 30;
@@ -152,7 +138,6 @@
             if (!usersData[lowerUser]) {
                 usersData[lowerUser] = { points: 0, rank: 'Novato', displayName: displayName };
             }
-            // Actualizar el displayName por si el usuario cambia mayúsculas/minúsculas
             usersData[lowerUser].displayName = displayName;
             return usersData[lowerUser];
         }
@@ -163,7 +148,6 @@
             if (newRank && userData.rank !== newRank.name) {
                 const oldRank = userData.rank;
                 userData.rank = newRank.name;
-                // Notificar en el chat sobre el ascenso de rango
                 addMessage('Sistema', 'Bot', `${userData.displayName} ha ascendido de ${oldRank} a ${newRank.name}!`, [], [], '#7289da', '');
             }
         }
@@ -176,16 +160,11 @@
 
         function hasVoicePermission(displayName) {
             const lowerUser = displayName.toLowerCase();
-            if (manualVoiceUsers.has(lowerUser)) return true; // El permiso manual tiene prioridad
-
+            if (manualVoiceUsers.has(lowerUser)) return true;
             const userData = getUserData(displayName);
             const userRankIndex = RANKS.findIndex(r => r.name === userData.rank);
             const requiredRankIndex = RANKS.findIndex(r => r.name === RANK_FOR_VOICE);
-            
-            // Si no se encuentra el rango, no tiene permiso
             if (userRankIndex === -1 || requiredRankIndex === -1) return false;
-            
-            // Si el índice del usuario es menor o igual al requerido (recordar que está ordenado de mayor a menor)
             return userRankIndex <= requiredRankIndex;
         }
 
@@ -195,12 +174,19 @@
             volumeSlider.value = volume;
             volumeValueSpan.textContent = `${volume}%`;
             if (selectedVoice) voiceSelect.value = selectedVoice;
-            
             renderUsersList();
         }
-        
+
+        // ### INICIO DE LA CORRECCIÓN ###
         function populateVoiceSelect() {
             voices = speechSynthesis.getVoices();
+            if(voices.length === 0) {
+                console.warn("La lista de voces está vacía. Esperando a onvoiceschanged.");
+                return;
+            }
+            
+            console.log("Voces cargadas:", voices.length);
+            const currentSelected = voiceSelect.value;
             voiceSelect.innerHTML = '';
             voices.forEach(voice => {
                 const option = document.createElement('option');
@@ -208,18 +194,57 @@
                 option.value = voice.name;
                 voiceSelect.appendChild(option);
             });
+            // Restaurar la selección previa o la guardada en localStorage
+            voiceSelect.value = currentSelected || selectedVoice;
+        }
+
+        function initializeAdminPanel() {
+            loadState();
+
+            // Llama a populateVoiceSelect para intentar llenar la lista de inmediato
+            // si las voces ya están en caché por el navegador.
+            populateVoiceSelect();
+
+            // El evento `onvoiceschanged` se dispara cuando la lista de voces está lista o cambia.
+            // Esto soluciona el problema de que la lista esté vacía al cargar la página.
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = populateVoiceSelect;
+            }
+            
+            // Listeners de los controles
+            voiceToggle.addEventListener('change', () => { voiceEnabled = voiceToggle.checked; saveState(); });
+            volumeSlider.addEventListener('input', () => { volume = parseInt(volumeSlider.value); volumeValueSpan.textContent = `${volume}%`; });
+            volumeSlider.addEventListener('change', () => saveState());
+            voiceSelect.addEventListener('change', () => {
+                selectedVoice = voiceSelect.value;
+                saveState();
+                speakMessage("Esta es la nueva voz seleccionada.");
+            });
+
+            usersListDiv.addEventListener('click', (e) => {
+                const button = e.target.closest('button');
+                if (!button) return;
+                const user = button.getAttribute('data-user');
+                if (manualVoiceUsers.has(user)) {
+                    manualVoiceUsers.delete(user);
+                } else {
+                    manualVoiceUsers.add(user);
+                }
+                saveState();
+                renderUsersList();
+            });
+
             updateAdminPanel();
         }
+        // ### FIN DE LA CORRECCIÓN ###
 
         function renderUsersList() {
             usersListDiv.innerHTML = '';
             const sortedUsers = Object.entries(usersData).sort(([, a], [, b]) => b.points - a.points);
-
             sortedUsers.forEach(([username, data]) => {
                 const isManual = manualVoiceUsers.has(username);
                 const userItem = document.createElement('div');
                 userItem.className = 'user-item';
-                
                 userItem.innerHTML = `
                     <div>
                         <span class="user-info">${data.displayName}</span>
@@ -233,40 +258,6 @@
             });
         }
         
-        // --- LÓGICA DE EVENTOS DEL PANEL ---
-        function initializeAdminPanel() {
-            loadState();
-            populateVoiceSelect();
-            if (speechSynthesis.onvoiceschanged !== undefined) {
-                speechSynthesis.onvoiceschanged = populateVoiceSelect;
-            }
-
-            voiceToggle.addEventListener('change', () => { voiceEnabled = voiceToggle.checked; saveState(); });
-            volumeSlider.addEventListener('input', () => { volume = parseInt(volumeSlider.value); volumeValueSpan.textContent = `${volume}%`; });
-            volumeSlider.addEventListener('change', () => saveState());
-            voiceSelect.addEventListener('change', () => {
-                selectedVoice = voiceSelect.value;
-                saveState();
-                speakMessage("Esta es la nueva voz seleccionada.");
-            });
-
-            usersListDiv.addEventListener('click', (e) => {
-                const button = e.target.closest('button');
-                if (!button) return;
-
-                const user = button.getAttribute('data-user');
-                if (manualVoiceUsers.has(user)) {
-                    manualVoiceUsers.delete(user);
-                } else {
-                    manualVoiceUsers.add(user);
-                }
-                saveState();
-                renderUsersList();
-            });
-
-            updateAdminPanel();
-        }
-
         // --- CÓDIGO DE CHAT ---
         function addMessage(platform, displayName, message, badges, emotes, color, profileImageUrl) {
             const urlPattern = /https?:\/\/[^\s]+/;
@@ -274,15 +265,13 @@
 
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message';
-
             const badgeContainer = document.createElement('div');
             badgeContainer.className = 'badge-container';
-
             const platformIcon = document.createElement('img');
             platformIcon.className = 'platform-icon';
             platformIcon.src = platform === 'YouTube' ? 'https://cdn-icons-png.flaticon.com/512/1383/1383260.png' :
                                platform === 'Twitch' ? 'https://cdn-icons-png.flaticon.com/512/15789/15789312.png' :
-                               'https://static.thenounproject.com/png/1183186-200.png'; // Icono de sistema
+                               'https://static.thenounproject.com/png/1183186-200.png';
             badgeContainer.appendChild(platformIcon);
 
             if (hasVoicePermission(displayName)) {
@@ -307,10 +296,9 @@
 
             const messageContentDiv = document.createElement('div');
             messageContentDiv.className = 'message-content';
-
             const processTwitchMessage = (text, msgEmotes) => {
                 let formattedMessage = text;
-                msgEmotes.forEach(emote => {
+                (msgEmotes || []).forEach(emote => {
                     const emoteTag = `<img src="${emote.imageUrl}" class="emote">`;
                     const emoteRegex = new RegExp(`\\b${emote.name}\\b`, 'g');
                     formattedMessage = formattedMessage.replace(emoteRegex, emoteTag);
@@ -328,7 +316,7 @@
             messageDiv.appendChild(messageContentDiv);
             chat.appendChild(messageDiv);
 
-            if (chat.children.length > 20) chat.removeChild(chat.firstChild);
+            if (chat.children.length > 30) chat.removeChild(chat.firstChild);
             setTimeout(() => { if (messageDiv.parentNode) messageDiv.remove(); }, 25000);
         }
 
@@ -396,7 +384,6 @@
             subscribe: { 'YouTube': ['Message'], 'Twitch': ['ChatMessage'] },
             onData: (data) => {
                 let eventData, source;
-                
                 try {
                     if (data.event.source === 'Twitch' && data.event.type === 'ChatMessage') {
                         eventData = data.data.message;
@@ -406,13 +393,8 @@
                         eventData.displayName = data.data.user.name;
                         eventData.isBroadcaster = data.data.user.isOwner;
                         source = 'YouTube';
-                    } else {
-                        return;
-                    }
-                } catch(e) {
-                    console.error("Error procesando datos de Streamer.bot", e, data);
-                    return;
-                }
+                    } else { return; }
+                } catch(e) { console.error("Error procesando datos de Streamer.bot", e, data); return; }
                 
                 const { displayName, message, badges = [], emotes = [], color = '#FF0000', isBroadcaster, isOwner } = eventData;
                 const userIsOwner = isBroadcaster || isOwner;
@@ -423,24 +405,18 @@
                     processCommand(source, displayName, message, userIsOwner);
                 } else {
                     addPoints(displayName, POINTS_PER_MESSAGE);
-                    
                     addMessage(source, displayName, message, badges, emotes, color, eventData.profileImageUrl || '');
-                    
                     if (hasVoicePermission(displayName)) {
                         speakMessage(`${displayName} dice: ${message}`);
                     }
-
-                    // Guardar y actualizar el panel de forma periódica para no sobrecargar localStorage
-                    // Esto se hace en un timeout para que no ocurra en cada mensaje si hay spam.
                     clearTimeout(window.saveTimeout);
                     window.saveTimeout = setTimeout(() => {
                         saveState();
                         updateAdminPanel();
-                    }, 2000); // Guardar y actualizar cada 2 segundos de inactividad
+                    }, 2000);
                 }
             }
         });
-
         client.connect();
     </script>
 </body>
