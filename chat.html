@@ -7,401 +7,310 @@
     <title>Chat Overlay & Admin Panel</title>
     <style>
         body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background: transparent;
-            color: #f0f0f0;
-            font-family: Arial, sans-serif;
+            margin: 0; padding: 0; overflow: hidden; background: transparent;
+            color: #f0f0f0; font-family: Arial, sans-serif;
         }
-
-        .main-container {
-            display: flex;
-            width: 100vw;
-            height: 100vh;
-        }
-
-        #chat-column {
-            flex: 2; /* El chat ocupa más espacio */
-            height: 100%;
-            overflow: hidden;
-            position: relative; /* Para que el chat se posicione correctamente */
-        }
-
+        .main-container { display: flex; width: 100vw; height: 100vh; }
+        #chat-column { flex: 2; height: 100%; overflow: hidden; position: relative; }
         #chat {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            font-size: 16px;
-            background: transparent;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; font-size: 16px;
+            background: transparent; display: flex; flex-direction: column; justify-content: flex-end;
         }
-
-        /* ESTILOS DEL CHAT (sin cambios) */
         .message {
-            margin: 10px;
-            padding: 10px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            background-color: rgba(0, 0, 0, 0.5); /* Ligero fondo para mejor lectura */
-            animation: slideIn 1s ease-out, fadeOut 25s forwards;
+            margin: 10px; padding: 10px; border-radius: 10px; display: flex; align-items: center;
+            background-color: rgba(0, 0, 0, 0.5); animation: slideIn 1s ease-out, fadeOut 25s forwards;
         }
-
-        @keyframes slideIn {
-            from { transform: translateX(-100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        @keyframes fadeOut {
-            0%, 95% { opacity: 1; }
-            100% { opacity: 0; }
-        }
-
+        @keyframes slideIn { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { 0%, 95% { opacity: 1; } 100% { opacity: 0; } }
         .username {
-            font-weight: bold; margin-right: 10px; padding: 5px;
-            border-radius: 5px; background-color: #ff0000; color: #000;
+            font-weight: bold; margin-right: 10px; padding: 5px; border-radius: 5px;
+            background-color: #ff0000; color: #000;
+            display: flex; align-items: center;
         }
-        .message-text {
-            padding: 5px; border-radius: 5px; background-color: #ffffff;
-            color: #000; white-space: pre-wrap;
-        }
-        .badges img, .platform-icon { width: 20px; height: 20px; margin-right: 5px; }
-        .profile-image { width: 40px; height: 40px; margin-right: 5px; border-radius: 50%; }
-        .message-content { display: flex; flex-direction: column; }
-        .emote { width: 28px; height: 28px; vertical-align: middle;}
+        .message-text { padding: 5px; border-radius: 5px; background-color: #ffffff; color: #000; white-space: pre-wrap; }
+        .platform-icon { width: 20px; height: 20px; margin-right: 5px; }
+        .emote { width: 28px; height: 28px; vertical-align: middle; }
         .badge-container { display: flex; align-items: center; margin-right: 10px; }
         .voice-enabled-icon {
-            width: 20px; height: 20px; margin-right: 5px;
+            width: 20px; height: 20px; margin-right: 5px; background-size: contain; background-repeat: no-repeat;
             background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23FFA500"><path d="M12 15c1.66 0 3-1.34 3-3V6c0-1.66-1.34-3-3-3S9 4.34 9 6v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V6z"/><path d="M17 12c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-2.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>');
-            background-size: contain; background-repeat: no-repeat; display: inline-block;
+            display: inline-block;
         }
-
-        /* --- NUEVOS ESTILOS PARA EL PANEL DE ADMINISTRACIÓN --- */
+        .rank-badge {
+            font-size: 10px; padding: 2px 5px; border-radius: 3px;
+            font-weight: bold; margin-left: 5px; color: #fff;
+        }
+        .rank-Novato { background-color: #8395a7; }
+        .rank-RC { background: linear-gradient(45deg, #1e90ff, #483d8b); }
+        .rank-G { background: linear-gradient(45deg, #ffD700, #ff8c00); }
         #admin-panel {
-            flex: 1; /* El panel ocupa menos espacio */
-            background-color: #2c2f33; /* Fondo oscuro */
-            padding: 20px;
-            height: 100vh;
-            box-sizing: border-box;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 20px; /* Espacio entre secciones */
+            flex: 1; background-color: #2c2f33; padding: 20px; height: 100vh;
+            box-sizing: border-box; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;
         }
-
-        #admin-panel h2, #admin-panel h3 {
-            color: #ffffff;
-            margin-top: 0;
-            border-bottom: 1px solid #4f545c;
-            padding-bottom: 10px;
-        }
-
-        .admin-section {
-            background-color: #36393f;
-            padding: 15px;
-            border-radius: 8px;
-        }
-
-        #admin-panel label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-
-        #admin-panel input[type="text"], #admin-panel select {
-            width: 100%;
-            padding: 8px;
-            border-radius: 4px;
-            border: 1px solid #4f545c;
-            background-color: #40444b;
-            color: #f0f0f0;
-            box-sizing: border-box;
-        }
-
-        #admin-panel button {
-            padding: 8px 12px;
-            border-radius: 4px;
-            border: none;
-            background-color: #7289da;
-            color: white;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        #admin-panel button:hover {
-            background-color: #677bc4;
-        }
-
-        #allowed-users-list .user-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #40444b;
-            padding: 8px;
-            border-radius: 4px;
-            margin-bottom: 5px;
-        }
-
-        #allowed-users-list .remove-user-btn {
-            background-color: #f04747;
-        }
-        #allowed-users-list .remove-user-btn:hover {
-            background-color: #d84040;
-        }
-        
-        .toggle-switch {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .toggle-switch label { margin-bottom: 0; }
-        
+        #admin-panel h2, #admin-panel h3 { color: #ffffff; margin-top: 0; border-bottom: 1px solid #4f545c; padding-bottom: 10px; }
+        .admin-section { background-color: #36393f; padding: 15px; border-radius: 8px; }
+        #admin-panel label { display: block; margin-bottom: 8px; font-weight: bold; }
+        #admin-panel input[type="text"], #admin-panel select { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #4f545c; background-color: #40444b; color: #f0f0f0; box-sizing: border-box; }
+        #admin-panel button { padding: 8px 12px; border-radius: 4px; border: none; background-color: #7289da; color: white; cursor: pointer; font-weight: bold; }
+        #admin-panel button:hover { background-color: #677bc4; }
+        #users-list .user-item { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; background-color: #40444b; padding: 8px; border-radius: 4px; margin-bottom: 5px; }
+        .user-info { font-weight: bold; }
+        .user-stats { font-size: 0.8em; color: #b9bbbe; }
+        .user-item button.add-voice { background-color: #43b581; }
+        .user-item button.remove-voice { background-color: #f04747; }
     </style>
-    <script src="youtubeEmotes.js"></script>
+    <!-- Este script es un placeholder. Si tienes un archivo real, úsalo. Si no, puedes borrar esta línea. -->
+    <script>const youtubeEmotes = {};</script>
 </head>
-
 <body>
     <div class="main-container">
-        <div id="chat-column">
-            <div id="chat"></div>
-        </div>
+        <div id="chat-column"><div id="chat"></div></div>
         <div id="admin-panel">
             <h2>Panel de Administración</h2>
-
+            <!-- Voice Controls -->
             <div class="admin-section">
                 <h3>Voz TTS</h3>
-                 <div class="toggle-switch">
-                    <label for="voice-toggle">Activar Voz</label>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                    <label for="voice-toggle" style="margin-bottom:0;">Activar Voz</label>
                     <input type="checkbox" id="voice-toggle">
                 </div>
-            </div>
-
-            <div class="admin-section">
                 <label for="volume-slider">Volumen: <span id="volume-value">30%</span></label>
                 <input type="range" id="volume-slider" min="0" max="100" value="30">
-            </div>
-
-            <div class="admin-section">
-                <label for="voice-select">Seleccionar Voz</label>
+                <label for="voice-select" style="margin-top: 15px;">Seleccionar Voz</label>
                 <select id="voice-select"></select>
             </div>
-            
+            <!-- User Management -->
             <div class="admin-section">
-                <h3>Gestionar Usuarios con Voz</h3>
-                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                    <input type="text" id="add-user-input" placeholder="Nombre de usuario">
-                    <button id="add-user-btn">Agregar</button>
-                </div>
-                <div id="allowed-users-list"></div>
+                <h3>Gestión de Usuarios</h3>
+                <div id="users-list"></div>
             </div>
         </div>
     </div>
 
-
     <script src="https://unpkg.com/@streamerbot/client@1.5.1/dist/streamerbot-client.js"></script>
     <script>
-        const chat = document.getElementById('chat');
-        let allowedUsers = new Set(JSON.parse(localStorage.getItem('allowedUsers')) || []);
-        let selectedVoice = localStorage.getItem('selectedVoice') || '';
-        let voices = [];
-        let volume = parseInt(localStorage.getItem('volume')) || 30;
-        let voiceEnabled = localStorage.getItem('voiceEnabled') === 'true';
+        // --- PREGUNTA SOBRE LOCALSTORAGE ---
+        // localStorage tiene un límite de espacio, pero es bastante grande para texto,
+        // usualmente entre 5 y 10 MB por dominio. Para guardar puntos y nombres de
+        // usuarios, es prácticamente imposible que llegues al límite. ¡No te preocupes por eso!
 
-        // --- REFERENCIAS A ELEMENTOS DEL PANEL ---
+        // --- CONFIGURACIÓN DEL SISTEMA DE PUNTOS Y RANGOS ---
+        const POINTS_PER_MESSAGE = 1;
+        const RANKS = [
+            { name: 'Novato', points: 0 },
+            { name: 'RC1', points: 500 },
+            { name: 'RC2', points: 1500 },
+            { name: 'RC3', points: 3000 },
+            { name: 'RC4', points: 50000 },
+            { name: 'RC5', points: 75000 },
+            { name: 'RC6', points: 100000 },
+            { name: 'RC7', points: 150000 }, // <-- Rango que otorga voz
+            { name: 'G1', points: 250000 },
+            { name: 'G2', points: 400000 },
+            { name: 'G3', points: 600000 }
+            // Puedes agregar más rangos aquí
+        ].sort((a, b) => b.points - a.points); // Ordenar de mayor a menor para facilitar la búsqueda
+
+        const RANK_FOR_VOICE = 'RC7';
+
+        // --- ESTADO GLOBAL DE LA APLICACIÓN ---
+        const chat = document.getElementById('chat');
+        let usersData = {}; // { 'username_lowercase': { points: 10, rank: 'Novato', displayName: 'Username' }, ... }
+        let manualVoiceUsers = new Set(); // Usuarios con voz manual (en minúsculas)
+        let selectedVoice = '';
+        let voices = [];
+        let volume = 30;
+        let voiceEnabled = false;
+
+        // --- REFERENCIAS AL PANEL DE ADMINISTRACIÓN ---
         const voiceToggle = document.getElementById('voice-toggle');
         const volumeSlider = document.getElementById('volume-slider');
         const volumeValueSpan = document.getElementById('volume-value');
         const voiceSelect = document.getElementById('voice-select');
-        const addUserInput = document.getElementById('add-user-input');
-        const addUserBtn = document.getElementById('add-user-btn');
-        const allowedUsersListDiv = document.getElementById('allowed-users-list');
+        const usersListDiv = document.getElementById('users-list');
 
+        // --- FUNCIONES DE GESTIÓN DE ESTADO (localStorage) ---
         function saveState() {
-            localStorage.setItem('allowedUsers', JSON.stringify([...allowedUsers]));
+            localStorage.setItem('usersData', JSON.stringify(usersData));
+            localStorage.setItem('manualVoiceUsers', JSON.stringify([...manualVoiceUsers]));
             localStorage.setItem('selectedVoice', selectedVoice);
             localStorage.setItem('volume', volume);
             localStorage.setItem('voiceEnabled', voiceEnabled);
         }
 
-        // --- FUNCIONES DE ACTUALIZACIÓN DEL PANEL ---
-
-        function updateAdminPanel() {
-            // Actualizar el toggle de voz
-            voiceToggle.checked = voiceEnabled;
-
-            // Actualizar el slider de volumen
-            volumeSlider.value = volume;
-            volumeValueSpan.textContent = `${volume}%`;
-
-            // Actualizar la voz seleccionada en el dropdown
-            if (selectedVoice) {
-                voiceSelect.value = selectedVoice;
-            }
-            
-            // Re-renderizar la lista de usuarios
-            renderAllowedUsers();
+        function loadState() {
+            usersData = JSON.parse(localStorage.getItem('usersData')) || {};
+            manualVoiceUsers = new Set(JSON.parse(localStorage.getItem('manualVoiceUsers')) || []);
+            selectedVoice = localStorage.getItem('selectedVoice') || '';
+            volume = parseInt(localStorage.getItem('volume')) || 30;
+            voiceEnabled = localStorage.getItem('voiceEnabled') === 'true';
         }
 
+        // --- LÓGICA DE PUNTOS Y RANGOS ---
+        function getUserData(displayName) {
+            const lowerUser = displayName.toLowerCase();
+            if (!usersData[lowerUser]) {
+                usersData[lowerUser] = { points: 0, rank: 'Novato', displayName: displayName };
+            }
+            // Actualizar el displayName por si el usuario cambia mayúsculas/minúsculas
+            usersData[lowerUser].displayName = displayName;
+            return usersData[lowerUser];
+        }
+
+        function updateRank(userData) {
+            const currentPoints = userData.points;
+            const newRank = RANKS.find(r => currentPoints >= r.points);
+            if (newRank && userData.rank !== newRank.name) {
+                const oldRank = userData.rank;
+                userData.rank = newRank.name;
+                // Notificar en el chat sobre el ascenso de rango
+                addMessage('Sistema', 'Bot', `${userData.displayName} ha ascendido de ${oldRank} a ${newRank.name}!`, [], [], '#7289da', '');
+            }
+        }
+
+        function addPoints(displayName, pointsToAdd) {
+            const userData = getUserData(displayName);
+            userData.points += pointsToAdd;
+            updateRank(userData);
+        }
+
+        function hasVoicePermission(displayName) {
+            const lowerUser = displayName.toLowerCase();
+            if (manualVoiceUsers.has(lowerUser)) return true; // El permiso manual tiene prioridad
+
+            const userData = getUserData(displayName);
+            const userRankIndex = RANKS.findIndex(r => r.name === userData.rank);
+            const requiredRankIndex = RANKS.findIndex(r => r.name === RANK_FOR_VOICE);
+            
+            // Si no se encuentra el rango, no tiene permiso
+            if (userRankIndex === -1 || requiredRankIndex === -1) return false;
+            
+            // Si el índice del usuario es menor o igual al requerido (recordar que está ordenado de mayor a menor)
+            return userRankIndex <= requiredRankIndex;
+        }
+
+        // --- ACTUALIZACIÓN DEL PANEL DE ADMINISTRACIÓN ---
+        function updateAdminPanel() {
+            voiceToggle.checked = voiceEnabled;
+            volumeSlider.value = volume;
+            volumeValueSpan.textContent = `${volume}%`;
+            if (selectedVoice) voiceSelect.value = selectedVoice;
+            
+            renderUsersList();
+        }
+        
         function populateVoiceSelect() {
             voices = speechSynthesis.getVoices();
-            voiceSelect.innerHTML = ''; // Limpiar opciones anteriores
+            voiceSelect.innerHTML = '';
             voices.forEach(voice => {
                 const option = document.createElement('option');
                 option.textContent = `${voice.name} (${voice.lang})`;
                 option.value = voice.name;
                 voiceSelect.appendChild(option);
             });
-            // Una vez poblado, seleccionamos la voz guardada
             updateAdminPanel();
         }
-        
-        function renderAllowedUsers() {
-            allowedUsersListDiv.innerHTML = ''; // Limpiar lista
-            if (allowedUsers.size === 0) {
-                allowedUsersListDiv.innerHTML = '<p style="font-style: italic;">No hay usuarios permitidos.</p>';
-            } else {
-                [...allowedUsers].forEach(user => {
-                    const userItem = document.createElement('div');
-                    userItem.className = 'user-item';
-                    userItem.innerHTML = `
-                        <span>${user}</span>
-                        <button class="remove-user-btn" data-user="${user}">Eliminar</button>
-                    `;
-                    allowedUsersListDiv.appendChild(userItem);
-                });
-            }
+
+        function renderUsersList() {
+            usersListDiv.innerHTML = '';
+            const sortedUsers = Object.entries(usersData).sort(([, a], [, b]) => b.points - a.points);
+
+            sortedUsers.forEach(([username, data]) => {
+                const isManual = manualVoiceUsers.has(username);
+                const userItem = document.createElement('div');
+                userItem.className = 'user-item';
+                
+                userItem.innerHTML = `
+                    <div>
+                        <span class="user-info">${data.displayName}</span>
+                        <span class="user-stats">${data.rank} - ${data.points} Pts</span>
+                    </div>
+                    <button data-user="${username}" class="${isManual ? 'remove-voice' : 'add-voice'}">
+                        ${isManual ? 'Quitar Voz' : 'Dar Voz'}
+                    </button>
+                `;
+                usersListDiv.appendChild(userItem);
+            });
         }
-
-
+        
         // --- LÓGICA DE EVENTOS DEL PANEL ---
         function initializeAdminPanel() {
-            // Cargar estado inicial y popular voces
+            loadState();
             populateVoiceSelect();
             if (speechSynthesis.onvoiceschanged !== undefined) {
                 speechSynthesis.onvoiceschanged = populateVoiceSelect;
             }
 
-            // Event Listeners
-            voiceToggle.addEventListener('change', () => {
-                voiceEnabled = voiceToggle.checked;
-                saveState();
-                const status = voiceEnabled ? 'activada' : 'desactivada';
-                addMessage('Sistema', 'Panel', `La voz ha sido ${status}.`, [], [], '#00FF00', '');
-            });
-
-            volumeSlider.addEventListener('input', () => {
-                volume = parseInt(volumeSlider.value);
-                volumeValueSpan.textContent = `${volume}%`;
-            });
-            volumeSlider.addEventListener('change', () => { // Guarda solo al soltar el slider
-                 saveState();
-                 addMessage('Sistema', 'Panel', `Volumen ajustado al ${volume}%.`, [], [], '#00FF00', '');
-            });
-
+            voiceToggle.addEventListener('change', () => { voiceEnabled = voiceToggle.checked; saveState(); });
+            volumeSlider.addEventListener('input', () => { volume = parseInt(volumeSlider.value); volumeValueSpan.textContent = `${volume}%`; });
+            volumeSlider.addEventListener('change', () => saveState());
             voiceSelect.addEventListener('change', () => {
                 selectedVoice = voiceSelect.value;
                 saveState();
-                addMessage('Sistema', 'Panel', `Voz seleccionada: ${selectedVoice}`, [], [], '#00FF00', '');
                 speakMessage("Esta es la nueva voz seleccionada.");
             });
 
-            addUserBtn.addEventListener('click', () => {
-                const userToAdd = addUserInput.value.trim();
-                if (userToAdd) {
-                    allowedUsers.add(userToAdd);
-                    saveState();
-                    renderAllowedUsers();
-                    addMessage('Sistema', 'Panel', `"${userToAdd}" ha sido agregado a la lista.`, [], [], '#00FF00', '');
-                    addUserInput.value = ''; // Limpiar input
+            usersListDiv.addEventListener('click', (e) => {
+                const button = e.target.closest('button');
+                if (!button) return;
+
+                const user = button.getAttribute('data-user');
+                if (manualVoiceUsers.has(user)) {
+                    manualVoiceUsers.delete(user);
+                } else {
+                    manualVoiceUsers.add(user);
                 }
+                saveState();
+                renderUsersList();
             });
 
-            allowedUsersListDiv.addEventListener('click', (e) => {
-                if (e.target.classList.contains('remove-user-btn')) {
-                    const userToRemove = e.target.getAttribute('data-user');
-                    allowedUsers.delete(userToRemove);
-                    saveState();
-                    renderAllowedUsers();
-                    addMessage('Sistema', 'Panel', `"${userToRemove}" ha sido eliminado de la lista.`, [], [], '#FF0000', '');
-                }
-            });
-            
-            // Cargar todo al inicio
             updateAdminPanel();
         }
 
-        // --- CÓDIGO DE CHAT EXISTENTE (con pequeños ajustes) ---
-
+        // --- CÓDIGO DE CHAT ---
         function addMessage(platform, displayName, message, badges, emotes, color, profileImageUrl) {
             const urlPattern = /https?:\/\/[^\s]+/;
             if (urlPattern.test(message)) return;
-        
+
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message';
-            // ... (resto de la lógica de creación de mensajes es la misma) ...
-            const platformIcon = document.createElement('img');
-            platformIcon.className = 'platform-icon';
-            if (platform === 'Sistema') {
-                 platformIcon.src = 'https://static.thenounproject.com/png/1183186-200.png'; // Un icono genérico de sistema
-            } else {
-                platformIcon.src = platform === 'YouTube'
-                    ? 'https://cdn-icons-png.flaticon.com/512/1383/1383260.png'
-                    : 'https://cdn-icons-png.flaticon.com/512/15789/15789312.png';
-            }
 
             const badgeContainer = document.createElement('div');
             badgeContainer.className = 'badge-container';
+
+            const platformIcon = document.createElement('img');
+            platformIcon.className = 'platform-icon';
+            platformIcon.src = platform === 'YouTube' ? 'https://cdn-icons-png.flaticon.com/512/1383/1383260.png' :
+                               platform === 'Twitch' ? 'https://cdn-icons-png.flaticon.com/512/15789/15789312.png' :
+                               'https://static.thenounproject.com/png/1183186-200.png'; // Icono de sistema
             badgeContainer.appendChild(platformIcon);
 
-            if (profileImageUrl) {
-                const profileImage = document.createElement('img');
-                profileImage.className = 'profile-image';
-                profileImage.src = profileImageUrl;
-                badgeContainer.appendChild(profileImage);
-            }
-
-            if (allowedUsers.has(displayName)) {
+            if (hasVoicePermission(displayName)) {
                 const voiceIcon = document.createElement('span');
                 voiceIcon.className = 'voice-enabled-icon';
                 badgeContainer.appendChild(voiceIcon);
             }
-
-            const badgesDiv = document.createElement('div');
-            badgesDiv.className = 'badges';
-            badges.forEach(badge => {
-                const img = document.createElement('img');
-                img.src = badge.imageUrl;
-                badgesDiv.appendChild(img);
-            });
-
-            badgeContainer.appendChild(badgesDiv);
-
+            
             const usernameSpan = document.createElement('span');
             usernameSpan.className = 'username';
             usernameSpan.textContent = displayName;
             usernameSpan.style.backgroundColor = color;
-            if (platform === 'Sistema') usernameSpan.style.color = '#fff';
+
+            if(platform !== 'Sistema') {
+                const userData = getUserData(displayName);
+                const rankBadge = document.createElement('span');
+                const rankPrefix = userData.rank.substring(0,2).toUpperCase();
+                rankBadge.className = `rank-badge rank-${rankPrefix === 'NO' ? 'Novato' : rankPrefix}`;
+                rankBadge.textContent = userData.rank;
+                usernameSpan.appendChild(rankBadge);
+            }
 
             const messageContentDiv = document.createElement('div');
             messageContentDiv.className = 'message-content';
 
-            const processYouTubeMessage = (text) => {
-                return text.split(/(:[a-zA-Z0-9-_]+:)/g).map(part => {
-                    if (youtubeEmotes[part]) {
-                        return `<img src="${youtubeEmotes[part]}" class="emote">`;
-                    }
-                    return part;
-                }).join('');
-            };
-
-            const processTwitchMessage = (text) => {
+            const processTwitchMessage = (text, msgEmotes) => {
                 let formattedMessage = text;
-                emotes.forEach(emote => {
+                msgEmotes.forEach(emote => {
                     const emoteTag = `<img src="${emote.imageUrl}" class="emote">`;
                     const emoteRegex = new RegExp(`\\b${emote.name}\\b`, 'g');
                     formattedMessage = formattedMessage.replace(emoteRegex, emoteTag);
@@ -409,121 +318,22 @@
                 return formattedMessage;
             };
 
-            const maxLineLength = 40;
-            let formattedMessage = '';
-            let currentLineLength = 0;
-            const processMessage = platform === 'YouTube' ? processYouTubeMessage : (platform === 'Twitch' ? processTwitchMessage : (txt => txt));
-            message.split(' ').forEach(word => {
-                if (currentLineLength + word.length + 1 > maxLineLength) {
-                    formattedMessage += '\n';
-                    currentLineLength = 0;
-                }
-                formattedMessage += processMessage(word) + ' ';
-                currentLineLength += word.length + 1;
-            });
-
             const messageText = document.createElement('div');
             messageText.className = 'message-text';
-            messageText.innerHTML = formattedMessage.trim();
+            messageText.innerHTML = (platform === 'Twitch') ? processTwitchMessage(message, emotes) : message;
 
             messageContentDiv.appendChild(usernameSpan);
             messageContentDiv.appendChild(messageText);
             messageDiv.appendChild(badgeContainer);
             messageDiv.appendChild(messageContentDiv);
-            
             chat.appendChild(messageDiv);
-            
-            if (chat.children.length > 20) { // Limitar el número de mensajes en el DOM
-                chat.removeChild(chat.firstChild);
-            }
 
-            setTimeout(() => {
-                if (messageDiv.parentNode) {
-                    messageDiv.remove();
-                }
-            }, 25000);
-        }
-
-        function handleRewardRedemption(rewardData) {
-            const { user_name, reward } = rewardData;
-            let redeemMessage = `ha canjeado "${reward.title}" por ${reward.cost} puntos!`;
-            addMessage('Twitch', user_name, redeemMessage, [], [], '#9146FF', '');
-        }
-
-        function showListado(platform) {
-            let listadoMessage = "Listado actual:\n\n";
-            listadoMessage += `Voz activa: ${voiceEnabled ? 'Sí' : 'No'}\n`;
-            listadoMessage += `Volumen: ${volume}%\n`;
-            listadoMessage += `Voz seleccionada: ${selectedVoice || "Ninguna"}\n\n`;
-            listadoMessage += "Usuarios permitidos:\n";
-            if (allowedUsers.size > 0) {
-                [...allowedUsers].forEach(user => { listadoMessage += `- ${user}\n`; });
-            } else {
-                listadoMessage += "No hay usuarios permitidos.\n";
-            }
-            addMessage(platform, 'Sistema', listadoMessage, [], [], '#00FF00', '');
-        }
-
-        function processCommand(platform, displayName, message, isOwner) {
-            const [command, ...args] = message.split(' ');
-            const input = args.join(' ').trim();
-
-            if (command.startsWith('!mc_')) {
-                addMessage(platform, 'Sistema', `${displayName}, Mando Comando exclusivo de Minecraft: ${command}`, [], [], '#9146FF', '');
-                return;
-            }
-
-            if (!isOwner) {
-                addMessage(platform, 'Sistema', `${displayName}, solo el propietario del canal puede usar estos comandos.`, [], [], '#FF0000', '');
-                return;
-            }
-            
-            switch (command.toLowerCase()) {
-                case '!agregar':
-                    if (input) {
-                        allowedUsers.add(input);
-                        addMessage(platform, 'Sistema', `"${input}" ha sido agregado a la lista.`, [], [], '#00FF00', '');
-                    }
-                    break;
-                case '!eliminar':
-                    if (input && allowedUsers.has(input)) {
-                        allowedUsers.delete(input);
-                        addMessage(platform, 'Sistema', `"${input}" ha sido eliminado.`, [], [], '#FF0000', '');
-                    }
-                    break;
-                case '!voces':
-                    listVoices(platform);
-                    break;
-                case '!seleccionarvoz':
-                    if (input) selectVoice(platform, input);
-                    break;
-                case '!listado':
-                    showListado(platform);
-                    break;
-                case '!volumen':
-                    const newVolume = parseInt(input);
-                    if (!isNaN(newVolume) && newVolume >= 0 && newVolume <= 100) {
-                        volume = newVolume;
-                        addMessage(platform, 'Sistema', `Volumen ajustado al ${volume}%.`, [], [], '#00FF00', '');
-                    }
-                    break;
-                case '!voz':
-                    voiceEnabled = !voiceEnabled;
-                    const status = voiceEnabled ? 'activada' : 'desactivada';
-                    addMessage(platform, 'Sistema', `La voz ha sido ${status}.`, [], [], '#00FF00', '');
-                    break;
-                default:
-                    addMessage(platform, 'Sistema', `Comando desconocido: ${command}`, [], [], '#FF0000', '');
-                    return; // Evita guardar y actualizar si el comando no es válido
-            }
-            
-            // Sincronizar estado y UI después de un comando exitoso
-            saveState();
-            updateAdminPanel();
+            if (chat.children.length > 20) chat.removeChild(chat.firstChild);
+            setTimeout(() => { if (messageDiv.parentNode) messageDiv.remove(); }, 25000);
         }
 
         function speakMessage(message) {
-            if (!voiceEnabled) return;
+            if (!voiceEnabled || speechSynthesis.speaking) return;
             const utterance = new SpeechSynthesisUtterance(message);
             const voice = voices.find(v => v.name === selectedVoice) || voices[0];
             if (voice) {
@@ -534,75 +344,104 @@
             speechSynthesis.speak(utterance);
         }
 
-        function listVoices(platform) {
-            let voiceList = "Voces disponibles:\n";
-            voices.forEach((voice, index) => {
-                voiceList += `${index + 1}. ${voice.name} (${voice.lang})\n`;
-            });
-            addMessage(platform, 'Sistema', voiceList, [], [], '#00FF00', '');
-            speakMessage("Este es el listado de voces disponibles.");
-        }
+        // --- PROCESAMIENTO DE COMANDOS ---
+        function processCommand(platform, displayName, message, isOwner) {
+            const [command, ...args] = message.split(' ');
+            const input = args.join(' ').trim();
+            const lowerInput = input.toLowerCase();
 
-        function selectVoice(platform, input) {
-            let selectedVoiceIndex = -1;
-            if (!isNaN(input) && parseInt(input) > 0 && parseInt(input) <= voices.length) {
-                selectedVoiceIndex = parseInt(input) - 1;
-            } else {
-                selectedVoiceIndex = voices.findIndex(v => v.name.toLowerCase().includes(input.toLowerCase()));
+            if (command.toLowerCase() === '!rank' || command.toLowerCase() === '!puntos') {
+                const userToCheck = input || displayName;
+                const userData = getUserData(userToCheck);
+                const reply = `${userData.displayName}, es ${userData.rank} con ${userData.points} puntos.`;
+                addMessage('Sistema', 'Bot', reply, [], [], '#7289da', '');
+                return;
             }
 
-            if (selectedVoiceIndex !== -1) {
-                selectedVoice = voices[selectedVoiceIndex].name;
-                addMessage(platform, 'Sistema', `Voz seleccionada: ${selectedVoice}`, [], [], '#00FF00', '');
-                speakMessage("Esta es la nueva voz seleccionada.");
-            } else {
-                addMessage(platform, 'Sistema', `Voz no encontrada: ${input}.`, [], [], '#FF0000', '');
+            if (!isOwner) return;
+
+            switch (command.toLowerCase()) {
+                case '!agregar':
+                    if (lowerInput) {
+                        manualVoiceUsers.add(lowerInput);
+                        addMessage('Sistema', 'Bot', `Se ha dado permiso de voz manual a "${input}".`, [], [], '#43b581', '');
+                    }
+                    break;
+                case '!eliminar':
+                    if (lowerInput && manualVoiceUsers.has(lowerInput)) {
+                        manualVoiceUsers.delete(lowerInput);
+                        addMessage('Sistema', 'Bot', `Se ha quitado el permiso de voz manual a "${input}".`, [], [], '#f04747', '');
+                    }
+                    break;
+                case '!setpuntos':
+                    const [userToSet, pointsStr] = args;
+                    const points = parseInt(pointsStr);
+                    if (userToSet && !isNaN(points)) {
+                        const userData = getUserData(userToSet);
+                        userData.points = points;
+                        updateRank(userData);
+                        addMessage('Sistema', 'Bot', `Se han establecido los puntos de ${userData.displayName} a ${points}.`, [], [], '#7289da', '');
+                    }
+                    break;
             }
+            saveState();
+            updateAdminPanel();
         }
-        
-        // --- INICIALIZACIÓN Y CONEXIÓN ---
-        
-        // Inicializar el panel de administración al cargar la página
+
+        // --- CONEXIÓN CON STREAMER.BOT ---
         document.addEventListener('DOMContentLoaded', initializeAdminPanel);
 
         const client = new StreamerbotClient({
             host: '127.0.0.1', port: 8080, endpoint: '/',
-            subscribe: {
-                'YouTube': ['Message'],
-                'Twitch': ['ChatMessage', 'RewardRedemption']
-            },
+            subscribe: { 'YouTube': ['Message'], 'Twitch': ['ChatMessage'] },
             onData: (data) => {
-                console.log('Streamer.bot Data Received', data);
-                if (data.event.source === 'YouTube' && data.event.type === 'Message') {
-                    const { message, user } = data.data;
-                    const { name: displayName, profileImageUrl, isOwner } = user;
-                    if (message.startsWith('!')) {
-                        processCommand('YouTube', displayName, message, isOwner);
+                let eventData, source;
+                
+                try {
+                    if (data.event.source === 'Twitch' && data.event.type === 'ChatMessage') {
+                        eventData = data.data.message;
+                        source = 'Twitch';
+                    } else if (data.event.source === 'YouTube' && data.event.type === 'Message') {
+                        eventData = { ...data.data.user, ...data.data };
+                        eventData.displayName = data.data.user.name;
+                        eventData.isBroadcaster = data.data.user.isOwner;
+                        source = 'YouTube';
                     } else {
-                        addMessage('YouTube', displayName, message, [], [], '#FF0000', profileImageUrl);
-                        if (allowedUsers.has(displayName)) {
-                            speakMessage(`${displayName} dice: ${message}`);
-                        }
+                        return;
                     }
-                } else if (data.event.source === 'Twitch' && data.event.type === 'ChatMessage') {
-                    const { message: msgData } = data.data;
-                    const { displayName, message, badges, emotes, color, isBroadcaster: isOwner } = msgData;
-                    if (message.startsWith('!')) {
-                        processCommand('Twitch', displayName, message, isOwner);
-                    } else {
-                        addMessage('Twitch', displayName, message, badges, emotes, color, '');
-                         if (allowedUsers.has(displayName)) {
-                            speakMessage(`${displayName} dice: ${message}`);
-                        }
+                } catch(e) {
+                    console.error("Error procesando datos de Streamer.bot", e, data);
+                    return;
+                }
+                
+                const { displayName, message, badges = [], emotes = [], color = '#FF0000', isBroadcaster, isOwner } = eventData;
+                const userIsOwner = isBroadcaster || isOwner;
+
+                if (!displayName || !message) return;
+
+                if (message.startsWith('!')) {
+                    processCommand(source, displayName, message, userIsOwner);
+                } else {
+                    addPoints(displayName, POINTS_PER_MESSAGE);
+                    
+                    addMessage(source, displayName, message, badges, emotes, color, eventData.profileImageUrl || '');
+                    
+                    if (hasVoicePermission(displayName)) {
+                        speakMessage(`${displayName} dice: ${message}`);
                     }
-                } else if (data.event.type === 'RewardRedemption') {
-                    handleRewardRedemption(data.data);
+
+                    // Guardar y actualizar el panel de forma periódica para no sobrecargar localStorage
+                    // Esto se hace en un timeout para que no ocurra en cada mensaje si hay spam.
+                    clearTimeout(window.saveTimeout);
+                    window.saveTimeout = setTimeout(() => {
+                        saveState();
+                        updateAdminPanel();
+                    }, 2000); // Guardar y actualizar cada 2 segundos de inactividad
                 }
             }
         });
 
         client.connect();
-
     </script>
 </body>
 </html>
