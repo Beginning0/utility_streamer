@@ -59,7 +59,7 @@
         .user-item button.add-voice { background-color: #43b581; }
         .user-item button.remove-voice { background-color: #f04747; }
     </style>
-    <!-- Este script es un placeholder. Si tienes un archivo real, úsalo. Si no, puedes borrar esta línea. -->
+    <!-- Si tienes un archivo de emotes de YouTube, reemplaza esta línea. Si no, puedes borrarla. -->
     <script>const youtubeEmotes = {};</script>
 </head>
 <body>
@@ -67,7 +67,6 @@
         <div id="chat-column"><div id="chat"></div></div>
         <div id="admin-panel">
             <h2>Panel de Administración</h2>
-            <!-- Voice Controls -->
             <div class="admin-section">
                 <h3>Voz TTS</h3>
                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
@@ -79,7 +78,6 @@
                 <label for="voice-select" style="margin-top: 15px;">Seleccionar Voz</label>
                 <select id="voice-select"></select>
             </div>
-            <!-- User Management -->
             <div class="admin-section">
                 <h3>Gestión de Usuarios</h3>
                 <div id="users-list"></div>
@@ -89,17 +87,22 @@
 
     <script src="https://unpkg.com/@streamerbot/client@1.5.1/dist/streamerbot-client.js"></script>
     <script>
-        // --- CONFIGURACIÓN DEL SISTEMA DE PUNTOS Y RANGOS ---
         const POINTS_PER_MESSAGE = 1;
         const RANKS = [
-            { name: 'Novato', points: 0 }, { name: 'RC1', points: 50 }, { name: 'RC2', points: 150 },
-            { name: 'RC3', points: 300 }, { name: 'RC4', points: 500 }, { name: 'RC5', points: 750 },
-            { name: 'RC6', points: 1000 }, { name: 'RC7', points: 1500 }, { name: 'G1', points: 2500 },
-            { name: 'G2', points: 4000 }, { name: 'G3', points: 6000 }
+            { name: 'Novato', points: 0 }, 
+            { name: 'RC1', points: 50 }, 
+            { name: 'RC2', points: 150 },
+            { name: 'RC3', points: 300 }, 
+            { name: 'RC4', points: 500 }, 
+            { name: 'RC5', points: 750 },
+            { name: 'RC6', points: 1000 },
+            { name: 'RC7', points: 1500 }, 
+            { name: 'G1', points: 25000 },
+            { name: 'G2', points: 40000 }, 
+            { name: 'G3', points: 60000 }
         ].sort((a, b) => b.points - a.points);
         const RANK_FOR_VOICE = 'RC7';
 
-        // --- ESTADO GLOBAL DE LA APLICACIÓN ---
         const chat = document.getElementById('chat');
         let usersData = {};
         let manualVoiceUsers = new Set();
@@ -107,15 +110,14 @@
         let voices = [];
         let volume = 30;
         let voiceEnabled = false;
+        let speechQueue = [];
 
-        // --- REFERENCIAS AL PANEL DE ADMINISTRACIÓN ---
         const voiceToggle = document.getElementById('voice-toggle');
         const volumeSlider = document.getElementById('volume-slider');
         const volumeValueSpan = document.getElementById('volume-value');
         const voiceSelect = document.getElementById('voice-select');
         const usersListDiv = document.getElementById('users-list');
 
-        // --- FUNCIONES DE GESTIÓN DE ESTADO (localStorage) ---
         function saveState() {
             localStorage.setItem('usersData', JSON.stringify(usersData));
             localStorage.setItem('manualVoiceUsers', JSON.stringify([...manualVoiceUsers]));
@@ -132,7 +134,6 @@
             voiceEnabled = localStorage.getItem('voiceEnabled') === 'true';
         }
 
-        // --- LÓGICA DE PUNTOS Y RANGOS ---
         function getUserData(displayName) {
             const lowerUser = displayName.toLowerCase();
             if (!usersData[lowerUser]) {
@@ -168,7 +169,6 @@
             return userRankIndex <= requiredRankIndex;
         }
 
-        // --- ACTUALIZACIÓN DEL PANEL DE ADMINISTRACIÓN ---
         function updateAdminPanel() {
             voiceToggle.checked = voiceEnabled;
             volumeSlider.value = volume;
@@ -177,15 +177,12 @@
             renderUsersList();
         }
 
-        // ### INICIO DE LA CORRECCIÓN ###
         function populateVoiceSelect() {
             voices = speechSynthesis.getVoices();
-            if(voices.length === 0) {
+            if (voices.length === 0) {
                 console.warn("La lista de voces está vacía. Esperando a onvoiceschanged.");
                 return;
             }
-            
-            console.log("Voces cargadas:", voices.length);
             const currentSelected = voiceSelect.value;
             voiceSelect.innerHTML = '';
             voices.forEach(voice => {
@@ -194,49 +191,8 @@
                 option.value = voice.name;
                 voiceSelect.appendChild(option);
             });
-            // Restaurar la selección previa o la guardada en localStorage
             voiceSelect.value = currentSelected || selectedVoice;
         }
-
-        function initializeAdminPanel() {
-            loadState();
-
-            // Llama a populateVoiceSelect para intentar llenar la lista de inmediato
-            // si las voces ya están en caché por el navegador.
-            populateVoiceSelect();
-
-            // El evento `onvoiceschanged` se dispara cuando la lista de voces está lista o cambia.
-            // Esto soluciona el problema de que la lista esté vacía al cargar la página.
-            if (speechSynthesis.onvoiceschanged !== undefined) {
-                speechSynthesis.onvoiceschanged = populateVoiceSelect;
-            }
-            
-            // Listeners de los controles
-            voiceToggle.addEventListener('change', () => { voiceEnabled = voiceToggle.checked; saveState(); });
-            volumeSlider.addEventListener('input', () => { volume = parseInt(volumeSlider.value); volumeValueSpan.textContent = `${volume}%`; });
-            volumeSlider.addEventListener('change', () => saveState());
-            voiceSelect.addEventListener('change', () => {
-                selectedVoice = voiceSelect.value;
-                saveState();
-                speakMessage("Esta es la nueva voz seleccionada.");
-            });
-
-            usersListDiv.addEventListener('click', (e) => {
-                const button = e.target.closest('button');
-                if (!button) return;
-                const user = button.getAttribute('data-user');
-                if (manualVoiceUsers.has(user)) {
-                    manualVoiceUsers.delete(user);
-                } else {
-                    manualVoiceUsers.add(user);
-                }
-                saveState();
-                renderUsersList();
-            });
-
-            updateAdminPanel();
-        }
-        // ### FIN DE LA CORRECCIÓN ###
 
         function renderUsersList() {
             usersListDiv.innerHTML = '';
@@ -258,7 +214,72 @@
             });
         }
         
-        // --- CÓDIGO DE CHAT ---
+        function processSpeechQueue() {
+            if (!voiceEnabled || speechQueue.length === 0 || speechSynthesis.speaking) {
+                return;
+            }
+            const messageToSpeak = speechQueue.shift();
+            const utterance = new SpeechSynthesisUtterance(messageToSpeak);
+            const voice = voices.find(v => v.name === selectedVoice) || voices[0];
+            if (voice) {
+                utterance.voice = voice;
+                utterance.lang = voice.lang;
+            }
+            utterance.volume = volume / 100;
+            utterance.onend = () => processSpeechQueue();
+            utterance.onerror = (event) => {
+                console.error('Error en la síntesis de voz:', event);
+                processSpeechQueue();
+            };
+            speechSynthesis.speak(utterance);
+        }
+
+        function speakMessage(message) {
+            if (!voiceEnabled) return;
+            speechQueue.push(message);
+            processSpeechQueue();
+        }
+
+        function stopAndClearSpeech() {
+            speechQueue = [];
+            speechSynthesis.cancel();
+        }
+
+        function initializeAdminPanel() {
+            loadState();
+            populateVoiceSelect();
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = populateVoiceSelect;
+            }
+            voiceToggle.addEventListener('change', () => {
+                voiceEnabled = voiceToggle.checked;
+                if (!voiceEnabled) {
+                    stopAndClearSpeech();
+                }
+                saveState();
+            });
+            volumeSlider.addEventListener('input', () => { volume = parseInt(volumeSlider.value); volumeValueSpan.textContent = `${volume}%`; });
+            volumeSlider.addEventListener('change', () => saveState());
+            voiceSelect.addEventListener('change', () => {
+                selectedVoice = voiceSelect.value;
+                saveState();
+                speakMessage("Esta es la nueva voz seleccionada.");
+            });
+            usersListDiv.addEventListener('click', (e) => {
+                const button = e.target.closest('button');
+                if (!button) return;
+                const user = button.getAttribute('data-user');
+                if (manualVoiceUsers.has(user)) {
+                    manualVoiceUsers.delete(user);
+                } else {
+                    manualVoiceUsers.add(user);
+                }
+                saveState();
+                renderUsersList();
+            });
+            updateAdminPanel();
+        }
+
         function addMessage(platform, displayName, message, badges, emotes, color, profileImageUrl) {
             const urlPattern = /https?:\/\/[^\s]+/;
             if (urlPattern.test(message)) return;
@@ -288,8 +309,10 @@
             if(platform !== 'Sistema') {
                 const userData = getUserData(displayName);
                 const rankBadge = document.createElement('span');
-                const rankPrefix = userData.rank.substring(0,2).toUpperCase();
-                rankBadge.className = `rank-badge rank-${rankPrefix === 'NO' ? 'Novato' : rankPrefix}`;
+                let rankType = 'Novato';
+                if (userData.rank.startsWith('RC')) rankType = 'RC';
+                else if (userData.rank.startsWith('G')) rankType = 'G';
+                rankBadge.className = `rank-badge rank-${rankType}`;
                 rankBadge.textContent = userData.rank;
                 usernameSpan.appendChild(rankBadge);
             }
@@ -320,19 +343,6 @@
             setTimeout(() => { if (messageDiv.parentNode) messageDiv.remove(); }, 25000);
         }
 
-        function speakMessage(message) {
-            if (!voiceEnabled || speechSynthesis.speaking) return;
-            const utterance = new SpeechSynthesisUtterance(message);
-            const voice = voices.find(v => v.name === selectedVoice) || voices[0];
-            if (voice) {
-                utterance.voice = voice;
-                utterance.lang = voice.lang;
-            }
-            utterance.volume = volume / 100;
-            speechSynthesis.speak(utterance);
-        }
-
-        // --- PROCESAMIENTO DE COMANDOS ---
         function processCommand(platform, displayName, message, isOwner) {
             const [command, ...args] = message.split(' ');
             const input = args.join(' ').trim();
@@ -376,7 +386,6 @@
             updateAdminPanel();
         }
 
-        // --- CONEXIÓN CON STREAMER.BOT ---
         document.addEventListener('DOMContentLoaded', initializeAdminPanel);
 
         const client = new StreamerbotClient({
