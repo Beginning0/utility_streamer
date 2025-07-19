@@ -45,23 +45,16 @@
         .rank-Novato { background-color: #8395a7; }
         .rank-RC { background: linear-gradient(45deg, #1e90ff, #483d8b); }
         .rank-G { background: linear-gradient(45deg, #ffD700, #ff8c00); }
-
-        /* ### ESTILOS MODIFICADOS Y NUEVOS ### */
         .crown-icon {
             background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ffd700"><path d="M12 2L9.12 8.44L2 9.27l5.46 5.3L6.24 22L12 18.27L17.76 22l-1.22-7.43L22 9.27l-7.12-.83L12 2z"/></svg>');
              background-size: contain;
         }
-
         #rank-up-animation-container {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: flex; 
-            justify-content: flex-start; /* MODIFICADO: Alineado a la izquierda */
-            align-items: flex-start; /* MODIFICADO: Alineado arriba */
-            padding: 50px; /* MODIFICADO: Espacio desde los bordes */
-            box-sizing: border-box;
+            display: flex; justify-content: flex-start; align-items: flex-start;
+            padding: 50px; box-sizing: border-box;
             z-index: 9999; pointer-events: none;
         }
-
         .rank-up-notification {
             padding: 20px 40px; border-radius: 15px; color: white;
             font-size: 2em; text-align: center;
@@ -70,7 +63,6 @@
         }
         .rank-up-notification.rc { background: linear-gradient(45deg, #1e90ff, #4169e1, #483d8b); }
         .rank-up-notification.g { background: linear-gradient(45deg, #ffd700, #f0e68c, #daa520); }
-
         @keyframes rankUp {
             0% { transform: scale(0.5) translateX(-50px); opacity: 0; }
             20% { transform: scale(1.1) translateX(0); opacity: 1; }
@@ -78,29 +70,14 @@
             80% { transform: scale(1) translateX(0); opacity: 1; }
             100% { transform: scale(0.8) translateX(-50px); opacity: 0; }
         }
-        
-        /* NUEVO: ESTILOS PARA EL CONFETI */
         .confetti-piece {
-            position: absolute;
-            width: 10px;
-            height: 20px;
-            opacity: 0;
-            animation: fall 5s linear forwards;
+            position: absolute; width: 10px; height: 20px;
+            opacity: 0; animation: fall 5s linear forwards;
         }
-
         @keyframes fall {
-            0% {
-                transform: translateY(-10vh) rotate(0deg);
-                opacity: 1;
-            }
-            100% {
-                transform: translateY(110vh) rotate(720deg);
-                opacity: 0;
-            }
+            0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
         }
-        /* FIN DE ESTILOS MODIFICADOS Y NUEVOS */
-
-        /* Panel de Admin (sin cambios) */
         #admin-panel { flex: 1; background-color: #2c2f33; padding: 20px; height: 100vh; box-sizing: border-box; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
         #admin-panel h2, #admin-panel h3 { color: #ffffff; margin-top: 0; border-bottom: 1px solid #4f545c; padding-bottom: 10px; }
         .admin-section { background-color: #36393f; padding: 15px; border-radius: 8px; }
@@ -122,9 +99,23 @@
             <div id="chat"></div>
             <div id="rank-up-animation-container"></div>
         </div>
-        <!-- El panel de admin va aquí, pero lo ocultamos para el ejemplo del script -->
-        <div id="admin-panel" style="display: block;"> <!-- Cambia a 'none' si quieres ocultarlo por defecto -->
-             <h2>Panel de Administración</h2><div class="admin-section"><h3>Voz TTS</h3><div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;"><label for="voice-toggle" style="margin-bottom:0;">Activar Voz</label><input type="checkbox" id="voice-toggle"></div><label for="volume-slider">Volumen: <span id="volume-value">30%</span></label><input type="range" id="volume-slider" min="0" max="100" value="30"><label for="voice-select" style="margin-top: 15px;">Seleccionar Voz</label><select id="voice-select"></select></div><div class="admin-section"><h3>Gestión de Usuarios</h3><div id="users-list"></div></div>
+        <div id="admin-panel">
+            <h2>Panel de Administración</h2>
+            <div class="admin-section">
+                <h3>Voz TTS</h3>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                    <label for="voice-toggle" style="margin-bottom:0;">Activar Voz</label>
+                    <input type="checkbox" id="voice-toggle">
+                </div>
+                <label for="volume-slider">Volumen: <span id="volume-value">30%</span></label>
+                <input type="range" id="volume-slider" min="0" max="100" value="30">
+                <label for="voice-select" style="margin-top: 15px;">Seleccionar Voz</label>
+                <select id="voice-select"></select>
+            </div>
+            <div class="admin-section">
+                <h3>Gestión de Usuarios</h3>
+                <div id="users-list"></div>
+            </div>
         </div>
     </div>
 
@@ -155,55 +146,40 @@
         const voiceSelect = document.getElementById('voice-select');
         const usersListDiv = document.getElementById('users-list');
 
-        // ### NUEVO: FUNCIÓN PARA CREAR CONFETI ###
         function createConfetti() {
             const confettiContainer = document.body;
             const colors = ['#e63946', '#f1faee', '#a8dadc', '#457b9d', '#1d3557', '#ffc300'];
-            for (let i = 0; i < 100; i++) { // 100 piezas de confeti
+            for (let i = 0; i < 100; i++) {
                 const piece = document.createElement('div');
                 piece.className = 'confetti-piece';
                 piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
                 piece.style.left = Math.random() * 100 + 'vw';
-                piece.style.top = -20 + 'px'; // Empezar justo fuera de la vista
+                piece.style.top = -20 + 'px';
                 piece.style.animationDelay = Math.random() * 2 + 's';
                 piece.style.animationDuration = Math.random() * 3 + 3 + 's';
-                
                 confettiContainer.appendChild(piece);
-                
-                // Limpiar el DOM después de que la animación termine
-                setTimeout(() => {
-                    piece.remove();
-                }, 6000); // Un poco más que la duración máxima de la animación
+                setTimeout(() => piece.remove(), 6000);
             }
         }
 
         function showRankUpAnimation(username, newRank) {
             const notification = document.createElement('div');
             notification.className = 'rank-up-notification';
-
             if (newRank.startsWith('RC')) notification.classList.add('rc');
             else if (newRank.startsWith('G')) notification.classList.add('g');
-
             notification.innerHTML = `¡Felicidades, <strong>${username}</strong>!<br>Has ascendido a ${newRank}`;
             animationContainer.appendChild(notification);
-            
-            // ### NUEVO: Disparar el confeti ###
             createConfetti();
-
-            setTimeout(() => {
-                notification.remove();
-            }, 5000);
+            setTimeout(() => notification.remove(), 5000);
         }
 
         function updateRank(userData) {
             const currentPoints = userData.points;
             const newRank = RANKS.find(r => currentPoints >= r.points);
-            
             if (newRank && userData.rank !== newRank.name) {
                 const oldRank = userData.rank;
                 userData.rank = newRank.name;
                 addMessage('Sistema', 'Bot', `${userData.displayName} ha ascendido de ${oldRank} a ${newRank.name}!`, [], [], '#7289da', '');
-                
                 if (newRank.name.startsWith('RC') || newRank.name.startsWith('G')) {
                     showRankUpAnimation(userData.displayName, newRank.name);
                 }
@@ -285,6 +261,7 @@
         // --- El resto de las funciones de JS (sin cambios) ---
         function saveState() { localStorage.setItem('usersData', JSON.stringify(usersData)); localStorage.setItem('manualVoiceUsers', JSON.stringify([...manualVoiceUsers])); localStorage.setItem('selectedVoice', selectedVoice); localStorage.setItem('volume', volume); localStorage.setItem('voiceEnabled', voiceEnabled); }
         function loadState() { usersData = JSON.parse(localStorage.getItem('usersData')) || {}; manualVoiceUsers = new Set(JSON.parse(localStorage.getItem('manualVoiceUsers')) || []); selectedVoice = localStorage.getItem('selectedVoice') || ''; volume = parseInt(localStorage.getItem('volume')) || 30; voiceEnabled = localStorage.getItem('voiceEnabled') === 'true'; }
+        function getUserData(displayName) { const lowerUser = displayName.toLowerCase(); if (!usersData[lowerUser]) { usersData[lowerUser] = { points: 0, rank: 'Novato', displayName: displayName }; } usersData[lowerUser].displayName = displayName; return usersData[lowerUser]; }
         function addPoints(displayName, pointsToAdd) { const userData = getUserData(displayName); userData.points += pointsToAdd; updateRank(userData); }
         function hasVoicePermission(displayName) { const lowerUser = displayName.toLowerCase(); if (manualVoiceUsers.has(lowerUser)) return true; const userData = getUserData(displayName); const userRankIndex = RANKS.findIndex(r => r.name === userData.rank); const requiredRankIndex = RANKS.findIndex(r => r.name === RANK_FOR_VOICE); if (userRankIndex === -1 || requiredRankIndex === -1) return false; return userRankIndex <= requiredRankIndex; }
         function updateAdminPanel() { voiceToggle.checked = voiceEnabled; volumeSlider.value = volume; volumeValueSpan.textContent = `${volume}%`; if (selectedVoice) voiceSelect.value = selectedVoice; renderUsersList(); }
@@ -297,15 +274,56 @@
         function processCommand(platform, displayName, message, isOwner) { const [command, ...args] = message.split(' '); const input = args.join(' ').trim(); const lowerInput = input.toLowerCase(); if (command.toLowerCase() === '!rank' || command.toLowerCase() === '!puntos') { const userToCheck = input || displayName; const userData = getUserData(userToCheck); const reply = `${userData.displayName}, es ${userData.rank} con ${userData.points} puntos.`; addMessage('Sistema', 'Bot', reply, [], [], '#7289da', ''); return; } if (!isOwner) return; switch (command.toLowerCase()) { case '!agregar': if (lowerInput) { manualVoiceUsers.add(lowerInput); addMessage('Sistema', 'Bot', `Se ha dado permiso de voz manual a "${input}".`, [], [], '#43b581', ''); } break; case '!eliminar': if (lowerInput && manualVoiceUsers.has(lowerInput)) { manualVoiceUsers.delete(lowerInput); addMessage('Sistema', 'Bot', `Se ha quitado el permiso de voz manual a "${input}".`, [], [], '#f04747', ''); } break; case '!setpuntos': const [userToSet, pointsStr] = args; const points = parseInt(pointsStr); if (userToSet && !isNaN(points)) { const userData = getUserData(userToSet); userData.points = points; updateRank(userData); addMessage('Sistema', 'Bot', `Se han establecido los puntos de ${userData.displayName} a ${points}.`, [], [], '#7289da', ''); } break; } saveState(); updateAdminPanel(); }
 
         document.addEventListener('DOMContentLoaded', initializeAdminPanel);
-        const client = new StreamerbotClient({ host: '127.0.0.1', port: 8080, endpoint: '/', subscribe: { 'YouTube': ['Message'], 'Twitch': ['ChatMessage'] } });
-        client.onData = (data) => {
-            let eventData, source;
-            try { if (data.event.source === 'Twitch' && data.event.type === 'ChatMessage') { eventData = data.data.message; source = 'Twitch'; } else if (data.event.source === 'YouTube' && data.event.type === 'Message') { eventData = { ...data.data.user, ...data.data }; eventData.displayName = data.data.user.name; eventData.isBroadcaster = data.data.user.isOwner; source = 'YouTube'; } else { return; } } catch(e) { console.error("Error procesando datos de Streamer.bot", e, data); return; }
-            const { displayName, message, badges = [], emotes = [], color = '#FF0000', isBroadcaster, isOwner } = eventData;
-            const userIsOwner = isBroadcaster || isOwner;
-            if (!displayName || !message) return;
-            if (message.startsWith('!')) { processCommand(source, displayName, message, userIsOwner); } else { addPoints(displayName, POINTS_PER_MESSAGE); addMessage(source, displayName, message, badges, emotes, color, eventData.profileImageUrl || ''); if (hasVoicePermission(displayName)) { speakMessage(`${displayName} dice: ${message}`); } clearTimeout(window.saveTimeout); window.saveTimeout = setTimeout(() => { saveState(); updateAdminPanel(); }, 2000); }
-        };
+
+        // ### INICIO DE LA CORRECCIÓN ###
+        // La función onData DEBE estar dentro del objeto de configuración del cliente.
+        const client = new StreamerbotClient({
+            host: '127.0.0.1',
+            port: 8080,
+            endpoint: '/',
+            subscribe: { 'YouTube': ['Message'], 'Twitch': ['ChatMessage'] },
+            onData: (data) => {
+                let eventData, source;
+                try {
+                    if (data.event.source === 'Twitch' && data.event.type === 'ChatMessage') {
+                        eventData = data.data.message;
+                        source = 'Twitch';
+                    } else if (data.event.source === 'YouTube' && data.event.type === 'Message') {
+                        eventData = { ...data.data.user, ...data.data };
+                        eventData.displayName = data.data.user.name;
+                        eventData.isBroadcaster = data.data.user.isOwner;
+                        source = 'YouTube';
+                    } else {
+                        return;
+                    }
+                } catch(e) {
+                    console.error("Error procesando datos de Streamer.bot", e, data);
+                    return;
+                }
+                
+                const { displayName, message, badges = [], emotes = [], color = '#FF0000', isBroadcaster, isOwner } = eventData;
+                const userIsOwner = isBroadcaster || isOwner;
+
+                if (!displayName || !message) return;
+
+                if (message.startsWith('!')) {
+                    processCommand(source, displayName, message, userIsOwner);
+                } else {
+                    addPoints(displayName, POINTS_PER_MESSAGE);
+                    addMessage(source, displayName, message, badges, emotes, color, eventData.profileImageUrl || '');
+                    if (hasVoicePermission(displayName)) {
+                        speakMessage(`${displayName} dice: ${message}`);
+                    }
+                    clearTimeout(window.saveTimeout);
+                    window.saveTimeout = setTimeout(() => {
+                        saveState();
+                        updateAdminPanel();
+                    }, 2000);
+                }
+            }
+        });
+        // ### FIN DE LA CORRECCIÓN ###
+
         client.connect();
     </script>
 </body>
