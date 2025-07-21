@@ -1,151 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Overlay & Admin Panel</title>
+    <title>Chat Overlay</title>
     <style>
-        body {
-            margin: 0; padding: 0; overflow: hidden; background: transparent;
-            color: #f0f0f0; font-family: 'Arial Black', Gadget, sans-serif;
-        }
-        .main-container { display: flex; width: 100vw; height: 100vh; }
-        #chat-column { flex: 2; height: 100%; overflow: hidden; position: relative; }
-        #chat {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; font-size: 16px;
-            background: transparent; display: flex; flex-direction: column; justify-content: flex-end;
-        }
-        .message {
-            margin: 10px; padding: 10px; border-radius: 10px; display: flex; align-items: center;
-            background-color: rgba(0, 0, 0, 0.6);
-            text-shadow: 1px 1px 2px black;
-            animation: slideIn 1s ease-out, fadeOut 25s forwards;
-        }
+        body { margin: 0; padding: 0; overflow: hidden; background: transparent; color: #f0f0f0; font-family: 'Arial Black', Gadget, sans-serif; }
+        #chat-column { width: 100%; height: 100vh; overflow: hidden; position: relative; }
+        #chat { position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; font-size: 16px; background: transparent; display: flex; flex-direction: column; justify-content: flex-end; }
+        .message { margin: 10px; padding: 10px; border-radius: 10px; display: flex; align-items: center; background-color: rgba(0, 0, 0, 0.6); text-shadow: 1px 1px 2px black; animation: slideIn 1s ease-out, fadeOut 25s forwards; }
         @keyframes slideIn { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes fadeOut { 0%, 95% { opacity: 1; } 100% { opacity: 0; } }
-        .username {
-            font-weight: bold; margin-right: 10px; padding: 5px; border-radius: 5px;
-            background-color: #ff0000; color: #fff;
-            display: flex; align-items: center;
-        }
+        .username { font-weight: bold; margin-right: 10px; padding: 5px; border-radius: 5px; background-color: #ff0000; color: #fff; display: flex; align-items: center; }
         .message-text { padding: 5px; border-radius: 5px; background-color: #ffffff; color: #000; white-space: pre-wrap; text-shadow: none; }
         .platform-icon, .crown-icon { width: 20px; height: 20px; margin-right: 5px; }
         .emote { width: 28px; height: 28px; vertical-align: middle; }
         .badge-container { display: flex; align-items: center; margin-right: 10px; }
-        .voice-enabled-icon {
-            width: 20px; height: 20px; margin-right: 5px; background-size: contain; background-repeat: no-repeat;
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23FFA500"><path d="M12 15c1.66 0 3-1.34 3-3V6c0-1.66-1.34-3-3-3S9 4.34 9 6v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V6z"/><path d="M17 12c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-2.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>');
-            display: inline-block;
-        }
-        .rank-badge {
-            font-size: 10px; padding: 2px 5px; border-radius: 3px;
-            font-weight: bold; margin-left: 5px; color: #fff;
-        }
+        .voice-enabled-icon { width: 20px; height: 20px; margin-right: 5px; background-size: contain; background-repeat: no-repeat; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23FFA500"><path d="M12 15c1.66 0 3-1.34 3-3V6c0-1.66-1.34-3-3-3S9 4.34 9 6v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V6z"/><path d="M17 12c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-2.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>'); display: inline-block; }
+        .rank-badge { font-size: 10px; padding: 2px 5px; border-radius: 3px; font-weight: bold; margin-left: 5px; color: #fff; }
         .rank-Novato { background-color: #8395a7; }
         .rank-RC { background: linear-gradient(45deg, #1e90ff, #483d8b); }
         .rank-G { background: linear-gradient(45deg, #ffD700, #ff8c00); }
-        .crown-icon {
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ffd700"><path d="M12 2L9.12 8.44L2 9.27l5.46 5.3L6.24 22L12 18.27L17.76 22l-1.22-7.43L22 9.27l-7.12-.83L12 2z"/></svg>');
-             background-size: contain;
-        }
-        #rank-up-animation-container {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: flex; justify-content: flex-start; align-items: flex-start;
-            padding: 50px; box-sizing: border-box;
-            z-index: 9999; pointer-events: none;
-        }
-        .rank-up-notification {
-            padding: 20px 40px; border-radius: 15px; color: white;
-            font-size: 2em; text-align: center;
-            text-shadow: 2px 2px 4px black;
-            animation: rankUp 5s ease-in-out forwards;
-        }
+        .crown-icon { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ffd700"><path d="M12 2L9.12 8.44L2 9.27l5.46 5.3L6.24 22L12 18.27L17.76 22l-1.22-7.43L22 9.27l-7.12-.83L12 2z"/></svg>'); background-size: contain; }
+        #rank-up-animation-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: flex-start; align-items: flex-start; padding: 50px; box-sizing: border-box; z-index: 9999; pointer-events: none; }
+        .rank-up-notification { padding: 20px 40px; border-radius: 15px; color: white; font-size: 2em; text-align: center; text-shadow: 2px 2px 4px black; animation: rankUp 5s ease-in-out forwards; }
         .rank-up-notification.rc { background: linear-gradient(45deg, #1e90ff, #4169e1, #483d8b); }
         .rank-up-notification.g { background: linear-gradient(45deg, #ffd700, #f0e68c, #daa520); }
-        @keyframes rankUp {
-            0% { transform: scale(0.5) translateX(-50px); opacity: 0; }
-            20% { transform: scale(1.1) translateX(0); opacity: 1; }
-            30% { transform: scale(1) translateX(0); opacity: 1; }
-            80% { transform: scale(1) translateX(0); opacity: 1; }
-            100% { transform: scale(0.8) translateX(-50px); opacity: 0; }
-        }
-        .confetti-piece {
-            position: absolute; width: 10px; height: 20px;
-            opacity: 0; animation: fall 5s linear forwards;
-        }
-        @keyframes fall {
-            0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
-            100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
-        }
-        #admin-panel { flex: 1; background-color: #2c2f33; padding: 20px; height: 100vh; box-sizing: border-box; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
-        #admin-panel h2, #admin-panel h3 { color: #ffffff; margin-top: 0; border-bottom: 1px solid #4f545c; padding-bottom: 10px; }
-        .admin-section { background-color: #36393f; padding: 15px; border-radius: 8px; }
-        #admin-panel label { display: block; margin-bottom: 8px; font-weight: bold; }
-        #admin-panel input[type="text"], #admin-panel select { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #4f545c; background-color: #40444b; color: #f0f0f0; box-sizing: border-box; }
-        #admin-panel button { padding: 8px 12px; border-radius: 4px; border: none; background-color: #7289da; color: white; cursor: pointer; font-weight: bold; }
-        #admin-panel button:hover { background-color: #677bc4; }
-        #users-list .user-item { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; background-color: #40444b; padding: 8px; border-radius: 4px; margin-bottom: 5px; }
-        .user-info { font-weight: bold; }
-        .user-stats { font-size: 0.8em; color: #b9bbbe; }
-        .user-item button.add-voice { background-color: #43b581; }
-        .user-item button.remove-voice { background-color: #f04747; }
+        @keyframes rankUp { 0% { transform: scale(0.5) translateX(-50px); opacity: 0; } 20% { transform: scale(1.1) translateX(0); opacity: 1; } 30% { transform: scale(1) translateX(0); opacity: 1; } 80% { transform: scale(1) translateX(0); opacity: 1; } 100% { transform: scale(0.8) translateX(-50px); opacity: 0; } }
+        .confetti-piece { position: absolute; width: 10px; height: 20px; opacity: 0; animation: fall 5s linear forwards; }
+        @keyframes fall { 0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; } 100% { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
     </style>
     <script>const youtubeEmotes = {};</script>
 </head>
 <body>
-    <div class="main-container">
-        <div id="chat-column">
-            <div id="chat"></div>
-            <div id="rank-up-animation-container"></div>
-        </div>
-        <div id="admin-panel">
-            <h2>Panel de Administración</h2>
-            <div class="admin-section">
-                <h3>Voz TTS</h3>
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
-                    <label for="voice-toggle" style="margin-bottom:0;">Activar Voz</label>
-                    <input type="checkbox" id="voice-toggle">
-                </div>
-                <label for="volume-slider">Volumen: <span id="volume-value">30%</span></label>
-                <input type="range" id="volume-slider" min="0" max="100" value="30">
-                <label for="voice-select" style="margin-top: 15px;">Seleccionar Voz</label>
-                <select id="voice-select"></select>
-            </div>
-            <div class="admin-section">
-                <h3>Gestión de Usuarios</h3>
-                <div id="users-list"></div>
-            </div>
-        </div>
+    <div id="chat-column">
+        <div id="chat"></div>
+        <div id="rank-up-animation-container"></div>
     </div>
 
+    <script src="shared.js"></script>
     <script src="https://unpkg.com/@streamerbot/client@1.5.1/dist/streamerbot-client.js"></script>
     <script>
-        const POINTS_PER_MESSAGE = 1;
-        const RANKS = [
-            { name: 'Novato', points: 0 }, { name: 'RC1', points: 50 }, { name: 'RC2', points: 150 },
-            { name: 'RC3', points: 300 }, { name: 'RC4', points: 500 }, { name: 'RC5', points: 750 },
-            { name: 'RC6', points: 1000 }, { name: 'RC7', points: 1500 }, { name: 'G1', points: 2500 },
-            { name: 'G2', points: 4000 }, { name: 'G3', points: 6000 }
-        ].sort((a, b) => b.points - a.points);
-        const RANK_FOR_VOICE = 'RC7';
-
-        const chat = document.getElementById('chat');
+        const chatEl = document.getElementById('chat');
         const animationContainer = document.getElementById('rank-up-animation-container');
-        let usersData = {};
-        let manualVoiceUsers = new Set();
-        let selectedVoice = '';
-        let voices = [];
-        let volume = 30;
-        let voiceEnabled = false;
         let speechQueue = [];
 
-        const voiceToggle = document.getElementById('voice-toggle');
-        const volumeSlider = document.getElementById('volume-slider');
-        const volumeValueSpan = document.getElementById('volume-value');
-        const voiceSelect = document.getElementById('voice-select');
-        const usersListDiv = document.getElementById('users-list');
-
+        // --- FUNCIONES VISUALES Y DE VOZ (solo para esta página) ---
         function createConfetti() {
             const confettiContainer = document.body;
             const colors = ['#e63946', '#f1faee', '#a8dadc', '#457b9d', '#1d3557', '#ffc300'];
@@ -173,19 +73,6 @@
             setTimeout(() => notification.remove(), 5000);
         }
 
-        function updateRank(userData) {
-            const currentPoints = userData.points;
-            const newRank = RANKS.find(r => currentPoints >= r.points);
-            if (newRank && userData.rank !== newRank.name) {
-                const oldRank = userData.rank;
-                userData.rank = newRank.name;
-                addMessage('Sistema', 'Bot', `${userData.displayName} ha ascendido de ${oldRank} a ${newRank.name}!`, [], [], '#7289da', '');
-                if (newRank.name.startsWith('RC') || newRank.name.startsWith('G')) {
-                    showRankUpAnimation(userData.displayName, newRank.name);
-                }
-            }
-        }
-        
         function addMessage(platform, displayName, message, badges, emotes, color, profileImageUrl) {
             const urlPattern = /https?:\/\/[^\s]+/;
             if (urlPattern.test(message)) return;
@@ -196,18 +83,14 @@
             badgeContainer.className = 'badge-container';
             const platformIcon = document.createElement('img');
             platformIcon.className = 'platform-icon';
-            platformIcon.src = platform === 'YouTube' ? 'https://cdn-icons-png.flaticon.com/512/1383/1383260.png' :
-                               platform === 'Twitch' ? 'https://cdn-icons-png.flaticon.com/512/15789/15789312.png' :
-                               'https://static.thenounproject.com/png/1183186-200.png';
+            platformIcon.src = platform === 'YouTube' ? 'https://cdn-icons-png.flaticon.com/512/1383/1383260.png' : platform === 'Twitch' ? 'https://cdn-icons-png.flaticon.com/512/15789/15789312.png' : 'https://static.thenounproject.com/png/1183186-200.png';
             badgeContainer.appendChild(platformIcon);
 
-            if(platform !== 'Sistema') {
-                const userData = getUserData(displayName);
-                if (userData.rank.startsWith('G')) {
-                    const crownIcon = document.createElement('span');
-                    crownIcon.className = 'crown-icon';
-                    badgeContainer.appendChild(crownIcon);
-                }
+            const userData = getUserData(displayName);
+            if (platform !== 'Sistema' && userData.rank.startsWith('G')) {
+                const crownIcon = document.createElement('span');
+                crownIcon.className = 'crown-icon';
+                badgeContainer.appendChild(crownIcon);
             }
 
             if (hasVoicePermission(displayName)) {
@@ -222,7 +105,6 @@
             usernameSpan.style.backgroundColor = color;
 
             if(platform !== 'Sistema') {
-                const userData = getUserData(displayName);
                 const rankBadge = document.createElement('span');
                 let rankType = 'Novato';
                 if (userData.rank.startsWith('RC')) rankType = 'RC';
@@ -252,79 +134,145 @@
             messageContentDiv.appendChild(messageText);
             messageDiv.appendChild(badgeContainer);
             messageDiv.appendChild(messageContentDiv);
-            chat.appendChild(messageDiv);
+            chatEl.appendChild(messageDiv);
 
-            if (chat.children.length > 30) chat.removeChild(chat.firstChild);
+            if (chatEl.children.length > 30) chatEl.removeChild(chatEl.firstChild);
             setTimeout(() => { if (messageDiv.parentNode) messageDiv.remove(); }, 25000);
         }
 
-        // --- El resto de las funciones de JS (sin cambios) ---
-        function saveState() { localStorage.setItem('usersData', JSON.stringify(usersData)); localStorage.setItem('manualVoiceUsers', JSON.stringify([...manualVoiceUsers])); localStorage.setItem('selectedVoice', selectedVoice); localStorage.setItem('volume', volume); localStorage.setItem('voiceEnabled', voiceEnabled); }
-        function loadState() { usersData = JSON.parse(localStorage.getItem('usersData')) || {}; manualVoiceUsers = new Set(JSON.parse(localStorage.getItem('manualVoiceUsers')) || []); selectedVoice = localStorage.getItem('selectedVoice') || ''; volume = parseInt(localStorage.getItem('volume')) || 30; voiceEnabled = localStorage.getItem('voiceEnabled') === 'true'; }
-        function getUserData(displayName) { const lowerUser = displayName.toLowerCase(); if (!usersData[lowerUser]) { usersData[lowerUser] = { points: 0, rank: 'Novato', displayName: displayName }; } usersData[lowerUser].displayName = displayName; return usersData[lowerUser]; }
-        function addPoints(displayName, pointsToAdd) { const userData = getUserData(displayName); userData.points += pointsToAdd; updateRank(userData); }
-        function hasVoicePermission(displayName) { const lowerUser = displayName.toLowerCase(); if (manualVoiceUsers.has(lowerUser)) return true; const userData = getUserData(displayName); const userRankIndex = RANKS.findIndex(r => r.name === userData.rank); const requiredRankIndex = RANKS.findIndex(r => r.name === RANK_FOR_VOICE); if (userRankIndex === -1 || requiredRankIndex === -1) return false; return userRankIndex <= requiredRankIndex; }
-        function updateAdminPanel() { voiceToggle.checked = voiceEnabled; volumeSlider.value = volume; volumeValueSpan.textContent = `${volume}%`; if (selectedVoice) voiceSelect.value = selectedVoice; renderUsersList(); }
-        function populateVoiceSelect() { voices = speechSynthesis.getVoices(); if (voices.length === 0) return; const currentSelected = voiceSelect.value; voiceSelect.innerHTML = ''; voices.forEach(voice => { const option = document.createElement('option'); option.textContent = `${voice.name} (${voice.lang})`; option.value = voice.name; voiceSelect.appendChild(option); }); voiceSelect.value = currentSelected || selectedVoice; }
-        function renderUsersList() { usersListDiv.innerHTML = ''; const sortedUsers = Object.entries(usersData).sort(([, a], [, b]) => b.points - a.points); sortedUsers.forEach(([username, data]) => { const isManual = manualVoiceUsers.has(username); const userItem = document.createElement('div'); userItem.className = 'user-item'; userItem.innerHTML = `<div><span class="user-info">${data.displayName}</span><span class="user-stats">${data.rank} - ${data.points} Pts</span></div><button data-user="${username}" class="${isManual ? 'remove-voice' : 'add-voice'}">${isManual ? 'Quitar Voz' : 'Dar Voz'}</button>`; usersListDiv.appendChild(userItem); }); }
-        function processSpeechQueue() { if (!voiceEnabled || speechQueue.length === 0 || speechSynthesis.speaking) return; const messageToSpeak = speechQueue.shift(); const utterance = new SpeechSynthesisUtterance(messageToSpeak); const voice = voices.find(v => v.name === selectedVoice) || voices[0]; if (voice) { utterance.voice = voice; utterance.lang = voice.lang; } utterance.volume = volume / 100; utterance.onend = () => processSpeechQueue(); utterance.onerror = (event) => { console.error('Error en la síntesis de voz:', event); processSpeechQueue(); }; speechSynthesis.speak(utterance); }
-        function speakMessage(message) { if (!voiceEnabled) return; speechQueue.push(message); processSpeechQueue(); }
-        function stopAndClearSpeech() { speechQueue = []; speechSynthesis.cancel(); }
-        function initializeAdminPanel() { loadState(); populateVoiceSelect(); if (speechSynthesis.onvoiceschanged !== undefined) { speechSynthesis.onvoiceschanged = populateVoiceSelect; } voiceToggle.addEventListener('change', () => { voiceEnabled = voiceToggle.checked; if (!voiceEnabled) stopAndClearSpeech(); saveState(); }); volumeSlider.addEventListener('input', () => { volume = parseInt(volumeSlider.value); volumeValueSpan.textContent = `${volume}%`; }); volumeSlider.addEventListener('change', () => saveState()); voiceSelect.addEventListener('change', () => { selectedVoice = voiceSelect.value; saveState(); speakMessage("Esta es la nueva voz seleccionada."); }); usersListDiv.addEventListener('click', (e) => { const button = e.target.closest('button'); if (!button) return; const user = button.getAttribute('data-user'); if (manualVoiceUsers.has(user)) { manualVoiceUsers.delete(user); } else { manualVoiceUsers.add(user); } saveState(); renderUsersList(); }); updateAdminPanel(); }
-        function processCommand(platform, displayName, message, isOwner) { const [command, ...args] = message.split(' '); const input = args.join(' ').trim(); const lowerInput = input.toLowerCase(); if (command.toLowerCase() === '!rank' || command.toLowerCase() === '!puntos') { const userToCheck = input || displayName; const userData = getUserData(userToCheck); const reply = `${userData.displayName}, es ${userData.rank} con ${userData.points} puntos.`; addMessage('Sistema', 'Bot', reply, [], [], '#7289da', ''); return; } if (!isOwner) return; switch (command.toLowerCase()) { case '!agregar': if (lowerInput) { manualVoiceUsers.add(lowerInput); addMessage('Sistema', 'Bot', `Se ha dado permiso de voz manual a "${input}".`, [], [], '#43b581', ''); } break; case '!eliminar': if (lowerInput && manualVoiceUsers.has(lowerInput)) { manualVoiceUsers.delete(lowerInput); addMessage('Sistema', 'Bot', `Se ha quitado el permiso de voz manual a "${input}".`, [], [], '#f04747', ''); } break; case '!setpuntos': const [userToSet, pointsStr] = args; const points = parseInt(pointsStr); if (userToSet && !isNaN(points)) { const userData = getUserData(userToSet); userData.points = points; updateRank(userData); addMessage('Sistema', 'Bot', `Se han establecido los puntos de ${userData.displayName} a ${points}.`, [], [], '#7289da', ''); } break; } saveState(); updateAdminPanel(); }
-
-        document.addEventListener('DOMContentLoaded', initializeAdminPanel);
-
-        // ### INICIO DE LA CORRECCIÓN ###
-        // La función onData DEBE estar dentro del objeto de configuración del cliente.
-        const client = new StreamerbotClient({
-            host: '127.0.0.1',
-            port: 8080,
-            endpoint: '/',
-            subscribe: { 'YouTube': ['Message'], 'Twitch': ['ChatMessage'] },
-            onData: (data) => {
-                let eventData, source;
-                try {
-                    if (data.event.source === 'Twitch' && data.event.type === 'ChatMessage') {
-                        eventData = data.data.message;
-                        source = 'Twitch';
-                    } else if (data.event.source === 'YouTube' && data.event.type === 'Message') {
-                        eventData = { ...data.data.user, ...data.data };
-                        eventData.displayName = data.data.user.name;
-                        eventData.isBroadcaster = data.data.user.isOwner;
-                        source = 'YouTube';
-                    } else {
-                        return;
-                    }
-                } catch(e) {
-                    console.error("Error procesando datos de Streamer.bot", e, data);
-                    return;
-                }
-                
-                const { displayName, message, badges = [], emotes = [], color = '#FF0000', isBroadcaster, isOwner } = eventData;
-                const userIsOwner = isBroadcaster || isOwner;
-
-                if (!displayName || !message) return;
-
-                if (message.startsWith('!')) {
-                    processCommand(source, displayName, message, userIsOwner);
-                } else {
-                    addPoints(displayName, POINTS_PER_MESSAGE);
-                    addMessage(source, displayName, message, badges, emotes, color, eventData.profileImageUrl || '');
-                    if (hasVoicePermission(displayName)) {
-                        speakMessage(`${displayName} dice: ${message}`);
-                    }
-                    clearTimeout(window.saveTimeout);
-                    window.saveTimeout = setTimeout(() => {
-                        saveState();
-                        updateAdminPanel();
-                    }, 2000);
+        function updateRankForChat(userData) {
+            const currentPoints = userData.points;
+            const newRank = RANKS.find(r => currentPoints >= r.points);
+            if (newRank && userData.rank !== newRank.name) {
+                const oldRank = userData.rank;
+                userData.rank = newRank.name;
+                addMessage('Sistema', 'Bot', `${userData.displayName} ha ascendido de ${oldRank} a ${newRank.name}!`, [], [], '#7289da', '');
+                if (newRank.name.startsWith('RC') || newRank.name.startsWith('G')) {
+                    showRankUpAnimation(userData.displayName, newRank.name);
                 }
             }
-        });
-        // ### FIN DE LA CORRECCIÓN ###
+        }
 
-        client.connect();
+        function addPointsForChat(displayName, pointsToAdd) {
+            const userData = getUserData(displayName);
+            userData.points += pointsToAdd;
+            updateRankForChat(userData);
+        }
+        
+        function processSpeechQueue() {
+            if (!voiceEnabled || speechQueue.length === 0 || speechSynthesis.speaking) return;
+            loadState(); // Cargar estado justo antes de hablar para tener la voz/volumen más recientes
+            const messageToSpeak = speechQueue.shift();
+            const utterance = new SpeechSynthesisUtterance(messageToSpeak);
+            voices = speechSynthesis.getVoices();
+            const voice = voices.find(v => v.name === selectedVoice) || voices[0];
+            if (voice) {
+                utterance.voice = voice;
+                utterance.lang = voice.lang;
+            }
+            utterance.volume = volume / 100;
+            utterance.onend = () => processSpeechQueue();
+            utterance.onerror = (event) => { console.error('TTS Error:', event); processSpeechQueue(); };
+            speechSynthesis.speak(utterance);
+        }
+        
+        function speakMessage(message) {
+            speechQueue.push(message);
+            processSpeechQueue();
+        }
+
+        function processCommand(platform, displayName, message, isOwner) {
+            const [command, ...args] = message.split(' ');
+            const input = args.join(' ').trim();
+            const lowerInput = input.toLowerCase();
+
+            if (command.toLowerCase() === '!rank' || command.toLowerCase() === '!puntos') {
+                const userToCheck = input || displayName;
+                const userData = getUserData(userToCheck);
+                const reply = `${userData.displayName}, es ${userData.rank} con ${userData.points} puntos.`;
+                addMessage('Sistema', 'Bot', reply, [], [], '#7289da', '');
+                return;
+            }
+
+            if (!isOwner) return;
+
+            switch (command.toLowerCase()) {
+                case '!agregar':
+                    if (lowerInput) {
+                        manualVoiceUsers.add(lowerInput);
+                        addMessage('Sistema', 'Bot', `Permiso de voz manual para "${input}".`, [], [], '#43b581', '');
+                    }
+                    break;
+                case '!eliminar':
+                    if (lowerInput) {
+                        manualVoiceUsers.delete(lowerInput);
+                        addMessage('Sistema', 'Bot', `Permiso de voz manual quitado para "${input}".`, [], [], '#f04747', '');
+                    }
+                    break;
+                case '!setpuntos':
+                    const [userToSet, pointsStr] = args;
+                    const points = parseInt(pointsStr);
+                    if (userToSet && !isNaN(points)) {
+                        const userData = getUserData(userToSet);
+                        userData.points = points;
+                        updateRankForChat(userData);
+                        addMessage('Sistema', 'Bot', `Puntos de ${userData.displayName} establecidos a ${points}.`, [], [], '#7289da', '');
+                    }
+                    break;
+                default: return; // No guardar si el comando no es válido
+            }
+            saveState(); // Guardar estado y notificar al panel
+        }
+
+        // --- INICIALIZACIÓN ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadState();
+            
+            // Escuchar cambios desde el panel de control
+            channel.onmessage = (event) => {
+                if (event.data && event.data.type === 'STATE_UPDATED') {
+                    console.log('Chat: Estado actualizado desde el panel.');
+                    loadState();
+                }
+            };
+            
+            // Conectar a Streamer.bot
+            const client = new StreamerbotClient({
+                host: '127.0.0.1', port: 8080, endpoint: '/',
+                subscribe: { 'YouTube': ['Message'], 'Twitch': ['ChatMessage'] },
+                onData: (data) => {
+                    let eventData, source;
+                    try {
+                        if (data.event.source === 'Twitch' && data.event.type === 'ChatMessage') {
+                            eventData = data.data.message;
+                            source = 'Twitch';
+                        } else if (data.event.source === 'YouTube' && data.event.type === 'Message') {
+                            eventData = { ...data.data.user, ...data.data };
+                            eventData.displayName = data.data.user.name;
+                            eventData.isBroadcaster = data.data.user.isOwner;
+                            source = 'YouTube';
+                        } else { return; }
+                    } catch(e) { console.error("Error procesando datos:", e, data); return; }
+                    
+                    const { displayName, message, badges = [], emotes = [], color = '#FF0000', isBroadcaster, isOwner } = eventData;
+                    if (!displayName || !message) return;
+
+                    if (message.startsWith('!')) {
+                        processCommand(source, displayName, message, isBroadcaster || isOwner);
+                    } else {
+                        addPointsForChat(displayName, POINTS_PER_MESSAGE);
+                        addMessage(source, displayName, message, badges, emotes, color, eventData.profileImageUrl || '');
+                        if (hasVoicePermission(displayName)) {
+                            speakMessage(`${displayName} dice: ${message}`);
+                        }
+                        // Guardar estado (y notificar al panel) periódicamente
+                        clearTimeout(window.saveTimeout);
+                        window.saveTimeout = setTimeout(() => saveState(), 2000);
+                    }
+                }
+            });
+            client.connect();
+        });
     </script>
 </body>
 </html>
