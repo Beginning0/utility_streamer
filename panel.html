@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración del Chat</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #2c2f33; color: #f0f0f0; margin: 0; padding: 20px; }
+        h2, h3 { color: #ffffff; margin-top: 0; border-bottom: 1px solid #4f545c; padding-bottom: 10px; }
+        .admin-section { background-color: #36393f; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; }
+        input[type="text"], select { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #4f545c; background-color: #40444b; color: #f0f0f0; box-sizing: border-box; }
+        button { padding: 8px 12px; border-radius: 4px; border: none; background-color: #7289da; color: white; cursor: pointer; font-weight: bold; margin-left: 5px; }
+        button:hover { background-color: #677bc4; }
+        #users-list .user-item { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; background-color: #40444b; padding: 8px; border-radius: 4px; margin-bottom: 5px; }
+        .user-info { font-weight: bold; }
+        .user-stats { font-size: 0.8em; color: #b9bbbe; }
+        .user-item button.add-voice { background-color: #43b581; }
+        .user-item button.remove-voice { background-color: #f04747; }
+        .toggle-switch { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .toggle-switch label { margin-bottom: 0; }
+    </style>
+</head>
+<body>
+    <h2>Panel de Administración del Chat</h2>
+    <div class="admin-section">
+        <h3>Voz TTS</h3>
+        <div class="toggle-switch">
+            <label for="voice-toggle">Activar Voz</label>
+            <input type="checkbox" id="voice-toggle">
+        </div>
+        <label for="volume-slider">Volumen: <span id="volume-value">30%</span></label>
+        <input type="range" id="volume-slider" min="0" max="100" value="30">
+        <label for="voice-select" style="margin-top: 15px;">Seleccionar Voz</label>
+        <select id="voice-select"></select>
+    </div>
+    <div class="admin-section">
+        <h3>Gestión de Usuarios</h3>
+        <div id="users-list"></div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        const voiceToggle = document.getElementById('voice-toggle');
+        const volumeSlider = document.getElementById('volume-slider');
+        const volumeValueSpan = document.getElementById('volume-value');
+        const voiceSelect = document.getElementById('voice-select');
+        const usersListDiv = document.getElementById('users-list');
+
+        function renderUsersList() {
+            usersListDiv.innerHTML = '';
+            const sortedUsers = Object.entries(usersData).sort(([, a], [, b]) => b.points - a.points);
+            sortedUsers.forEach(([username, data]) => {
+                const isManual = manualVoiceUsers.has(username);
+                const userItem = document.createElement('div');
+                userItem.className = 'user-item';
+                userItem.innerHTML = `
+                    <div>
+                        <span class="user-info">${data.displayName}</span>
+                        <span class="user-stats">${data.rank} - ${data.points} Pts</span>
+                    </div>
+                    <button data-user="${username}" class="${isManual ? 'remove-voice' : 'add-voice'}">
+                        ${isManual ? 'Quitar Voz' : 'Dar Voz'}
+                    </button>
+                `;
+                usersListDiv.appendChild(userItem);
+            });
+        }
+
+        function updatePanelUI() {
+            voiceToggle.checked = voiceEnabled;
+            volumeSlider.value = volume;
+            volumeValueSpan.textContent = `${volume}%`;
+            if (selectedVoice) voiceSelect.value = selectedVoice;
+            renderUsersList();
+        }
+
+        function populateVoiceSelect() {
+            voices = speechSynthesis.getVoices();
+            if (voices.length === 0) return;
+            const currentSelected = voiceSelect.value;
+            voiceSelect.innerHTML = '';
+            voices.forEach(voice => {
+                const option = document.createElement('option');
+                option.textContent = `${voice.name} (${voice.lang})`;
+                option.value = voice.name;
+                voiceSelect.appendChild(option);
+            });
+            voiceSelect.value = currentSelected || selectedVoice;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadState();
+            updatePanelUI();
+            
+            populateVoiceSelect();
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = populateVoiceSelect;
+            }
+            
+            // Escuchar cambios desde el chat (por si se usan comandos)
+            channel.onmessage = (event) => {
+                if (event.data && event.data.type === 'STATE_UPDATED') {
+                    console.log('Panel: Estado actualizado desde el chat.');
+                    loadState();
+                    updatePanelUI();
+                }
+            };
+
+            // --- Event Listeners para los controles ---
+            voiceToggle.addEventListener('change', () => {
+                voiceEnabled = voiceToggle.checked;
+                saveState();
+            });
+
+            volumeSlider.addEventListener('input', () => {
+                volume = parseInt(volumeSlider.value);
+                volumeValueSpan.textContent = `${volume}%`;
+            });
+            volumeSlider.addEventListener('change', () => saveState());
+
+            voiceSelect.addEventListener('change', () => {
+                selectedVoice = voiceSelect.value;
+                saveState();
+            });
+
+            usersListDiv.addEventListener('click', (e) => {
+                const button = e.target.closest('button');
+                if (!button) return;
+                const user = button.getAttribute('data-user');
+                if (manualVoiceUsers.has(user)) {
+                    manualVoiceUsers.delete(user);
+                } else {
+                    manualVoiceUsers.add(user);
+                }
+                saveState();
+                renderUsersList(); // Actualizar solo la lista para una respuesta más rápida
+            });
+        });
+    </script>
+</body>
+</html>
