@@ -1,85 +1,24 @@
 <!DOCTYPE html>
 <html lang="es">
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        background-color: #f0f0f0;
-        margin: 0;
-        padding: 0;
-    }
-
-    .container {
-        width: 80%;
-        margin: 0 auto;
-        padding: 20px;
-        background-color: #ffffff;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        border-radius: 10px;
-    }
-
-    header {
-        text-align: center;
-        margin-bottom: 20px;
-    }
-
-    h1 {
-        color: #333;
-        font-size: 2.5em;
-    }
-
-    .utilities {
-        text-align: center;
-    }
-
-    .utilities h2 {
-        color: #666;
-        margin-bottom: 20px;
-    }
-
-    .utilities ul {
-        list-style: none;
-        padding: 0;
-    }
-
-    .utilities li {
-        margin-bottom: 20px;
-        background-color: #f9f9f9;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-    }
-
-    .utilities h3 {
-        color: #333;
-        margin-bottom: 10px;
-    }
-
-    .utilities p {
-        color: #888;
-        margin-bottom: 10px;
-    }
-
-    .utilities a {
-        display: inline-block;
-        background-color: #333;
-        color: #fff;
-        padding: 10px 20px;
-        border-radius: 5px;
-        text-decoration: none;
-    }
-
-    .utilities a:hover {
-        background-color: #555;
-    }
-</style>
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Utility Streamer</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f0f0f0; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 10px; padding: 20px; }
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { color: #333; font-size: 2.5em; }
+        .utilities ul { list-style: none; padding: 0; }
+        .utilities li { margin-bottom: 20px; background-color: #f9f9f9; padding: 20px; border-radius: 10px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+        .utilities h3 { color: #333; }
+        .utilities p { color: #666; }
+        .utilities a { display: inline-block; background-color: #333; color: #fff; padding: 10px 20px; border-radius: 5px; text-decoration: none; margin-top: 10px; margin-right: 10px; }
+        .utilities a:hover { background-color: #555; }
+        .utilities .obs-link { background-color: #6441a5; }
+        .utilities .panel-link { background-color: #4CAF50; }
+    </style>
 </head>
-
 <body>
     <div class="container">
         <header>
@@ -91,18 +30,14 @@
                 <h2>Nuestras Herramientas</h2>
                 <ul>
                     <li>
-                        <h2>Ver el Chat</h2>
-                        <p>Esta utilidad te permite ver los chats de YouTube y Twitch desde una única interfaz, ideal para visualizar los mensajes de chat como un Overlay en tu OBS.</p>
-                        <p>Utiliza los servicios de WebSocket de Streamer.bot para captar los mensajes de chat. Asegúrate de configurar correctamente Streamer.bot antes de usar esta función.</p>
-                        <p>Accede al visor de chat en el siguiente enlace:</p>
-                        <a href="chat.html">Ver el Chat</a>                        
+                        <h3>Chat Overlay Interactivo</h3>
+                        <p>Este sistema muestra el chat de YouTube/Twitch, otorga puntos, rangos y permisos de voz automáticos. ¡Celebra los ascensos con animaciones y confeti!</p>
+                        <a href="chat.html" class="obs-link" target="_blank">Abrir Overlay para OBS</a>
+                        <a href="panel.html" class="panel-link" target="_blank">Abrir Panel de Control</a>
                     </li>
-                   
-                    <!-- Añadir más herramientas aquí -->
                 </ul>
             </section>
         </main>
     </div>
 </body>
-
 </html>
