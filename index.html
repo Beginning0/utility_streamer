@@ -3,20 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Utility Streamer</title>
+    <title>Utility Streamer - Guía de Instalación</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f0f0f0; margin: 0; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 10px; padding: 20px; }
-        header { text-align: center; margin-bottom: 20px; }
-        h1 { color: #333; font-size: 2.5em; }
-        .utilities ul { list-style: none; padding: 0; }
-        .utilities li { margin-bottom: 20px; background-color: #f9f9f9; padding: 20px; border-radius: 10px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
-        .utilities h3 { color: #333; }
-        .utilities p { color: #666; }
-        .utilities a { display: inline-block; background-color: #333; color: #fff; padding: 10px 20px; border-radius: 5px; text-decoration: none; margin-top: 10px; margin-right: 10px; }
-        .utilities a:hover { background-color: #555; }
-        .utilities .obs-link { background-color: #6441a5; }
-        .utilities .panel-link { background-color: #4CAF50; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f9; color: #333; margin: 0; padding: 20px; line-height: 1.6; }
+        .container { max-width: 900px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 10px; padding: 20px 40px; }
+        header { text-align: center; margin-bottom: 30px; border-bottom: 1px solid #e0e0e0; padding-bottom: 20px; }
+        h1 { color: #1a2533; font-size: 2.8em; margin-bottom: 0; }
+        h2 { color: #3b4a5e; border-bottom: 2px solid #5c7cfa; padding-bottom: 10px; margin-top: 40px; }
+        h3 { color: #3b4a5e; }
+        p { color: #555; }
+        a { color: #5c7cfa; text-decoration: none; font-weight: bold; }
+        a:hover { text-decoration: underline; }
+        .button { display: inline-block; background-color: #5c7cfa; color: #fff; padding: 12px 25px; border-radius: 5px; text-decoration: none; font-weight: bold; margin-top: 10px; transition: background-color 0.3s ease; }
+        .button:hover { background-color: #4a67d8; text-decoration: none; }
+        
+        .requisitos { background-color: #fffbe6; border-left: 5px solid #ffc107; padding: 15px 20px; margin-bottom: 30px; border-radius: 5px; }
+        .requisitos h3 { color: #856404; margin-top: 0; }
+        
+        ol { list-style: none; padding-left: 0; counter-reset: step-counter; }
+        ol li { counter-increment: step-counter; margin-bottom: 30px; position: relative; padding-left: 50px; }
+        ol li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 35px;
+            height: 35px;
+            background-color: #5c7cfa;
+            color: white;
+            border-radius: 50%;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+        }
+
+        ul { list-style: disc; padding-left: 20px; }
+        code { background-color: #eef2f7; padding: 3px 6px; border-radius: 4px; font-family: "Courier New", Courier, monospace; }
+        .obs-key {
+            background-color: #333;
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: sans-serif;
+            font-size: 0.9em;
+            border: 1px solid #555;
+        }
+        .herramienta { background-color: #fdfdfd; padding: 25px; border: 1px solid #e0e0e0; border-radius: 8px; }
+        
+        /* --- NUEVO: Estilos para la sección de futuras funciones --- */
+        .futura-herramienta {
+            background-color: #f8f9fa;
+            padding: 25px;
+            border: 2px dashed #ced4da; /* Borde punteado para indicar que no está activo */
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 20px;
+            opacity: 0.8; /* Ligeramente transparente */
+        }
+        .futura-herramienta h3 {
+            color: #6c757d;
+        }
+        .futura-herramienta ul {
+            list-style: none; /* Sin viñetas para un look más limpio */
+            padding: 0;
+            color: #6c757d;
+        }
     </style>
 </head>
 <body>
@@ -25,18 +78,77 @@
             <h1>Utility Streamer</h1>
             <p>Tu herramienta definitiva para la gestión de streams en directo</p>
         </header>
+        
         <main>
-            <section class="utilities">
-                <h2>Nuestras Herramientas</h2>
+            <div class="requisitos">
+                <h3>¡Requisito Indispensable!</h3>
+                <p>Este sistema necesita <strong>Streamer.bot</strong> para funcionar. Streamer.bot es el "cerebro" que conecta el chat de Twitch/YouTube con este overlay. Sin él, no verás ningún mensaje.</p>
+                <a href="https://streamer.bot/" target="_blank">Descargar Streamer.bot aquí</a>
+            </div>
+
+            <h2>Guía de Instalación y Configuración</h2>
+            <ol>
+                <li>
+                    <h3>Paso 1: Configurar Streamer.bot</h3>
+                    <p>Para que nuestro overlay pueda "escuchar" los mensajes, debes activar el servidor WebSocket en Streamer.bot.</p>
+                    <ul>
+                        <li>Abre Streamer.bot y ve a la pestaña <code>Servers/Clients</code> → <code>WebSocket Server</code>.</li>
+                        <li>Asegúrate de que la configuración sea exactamente la siguiente:</li>
+                    </ul>
+                    <pre><code>Host: 127.0.0.1
+Port: 8080
+Endpoint: /</code></pre>
+                    <ul>
+                        <li>Haz clic en <strong>Start Server</strong> si no está iniciado. Debería ponerse en verde.</li>
+                    </ul>
+                </li>
+
+                <li>
+                    <h3>Paso 2: Añadir el Overlay a OBS</h3>
+                    <p>Ahora vamos a hacer visible el chat en tu stream.</p>
+                    <ul>
+                        <li>En OBS, en tu escena de juego, añade una nueva fuente de tipo <code>Navegador</code> (Browser).</li>
+                        <li>Dale un nombre claro, como "Chat Overlay Interactivo".</li>
+                        <li>Marca la casilla <strong>"Archivo local"</strong> (Local file).</li>
+                        <li>Haz clic en <code>Examinar</code> y selecciona el archivo <strong>chat.html</strong> que se encuentra en esta misma carpeta.</li>
+                        <li>Establece el <code>Ancho</code> (Width) a <code>1920</code> y el <code>Alto</code> (Height) a <code>1080</code>.</li>
+                        <li><strong>EL PASO MÁS IMPORTANTE:</strong> Por defecto, verás tanto el chat como el panel de control. Para que tu audiencia solo vea el chat, debes recortar la vista.
+                            <ul>
+                                <li>Haz clic en la fuente del navegador en OBS.</li>
+                                <li>Mantén pulsada la tecla <span class="obs-key">Alt</span> y arrastra el borde derecho de la fuente hacia la izquierda hasta que solo se vea la columna del chat.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+
+                <li>
+                    <h3>Paso 3: Usar el Panel de Control</h3>
+                    <p>El mismo archivo <code>chat.html</code> es tu centro de mando. Para usarlo, simplemente ábrelo directamente en tu navegador web (Google Chrome, Firefox, etc.).</p>
+                    <ul>
+                        <li><strong>Lo que tú ves:</strong> En tu navegador, verás el chat a la izquierda y el panel de administración a la derecha, donde puedes cambiar la voz, ver la lista de usuarios, etc.</li>
+                        <li><strong>Lo que ve tu audiencia:</strong> Gracias al recorte que hiciste en OBS, ellos solo verán el chat apareciendo en pantalla, ¡mientras tu panel permanece invisible para ellos!</li>
+                    </ul>
+                </li>
+            </ol>
+
+            <h2>Nuestras Herramientas</h2>
+            <div class="herramienta">
+                <h3>Chat Interactivo y Panel de Control</h3>
+                <p>Un sistema todo en uno que muestra tu chat, recompensa a tus espectadores con puntos y rangos, y celebra sus logros con animaciones, confeti y coronas. Todo gestionable desde un cómodo panel de control.</p>
+                <a href="chat.html" class="button" target="_blank">Abrir Chat y Panel de Control</a>
+            </div>
+            
+            <!-- --- NUEVA SECCIÓN PARA FUTURAS FUNCIONES --- -->
+            <div class="futura-herramienta">
+                <h3>🚀 ¡Más herramientas en camino!</h3>
+                <p>Estamos trabajando para añadir nuevas utilidades que mejoren aún más tus directos. Algunas ideas en desarrollo son:</p>
                 <ul>
-                    <li>
-                        <h3>Chat Overlay Interactivo</h3>
-                        <p>Este sistema muestra el chat de YouTube/Twitch, otorga puntos, rangos y permisos de voz automáticos. ¡Celebra los ascensos con animaciones y confeti!</p>
-                        <a href="chat.html" class="obs-link" target="_blank">Abrir Overlay para OBS</a>
-                        <a href="panel.html" class="panel-link" target="_blank">Abrir Panel de Control</a>
-                    </li>
+                    <li>Alertas personalizables para follows, subs, etc.</li>
+                    <li>Contadores en pantalla (muertes, victorias...).</li>
+                    <li>Sistema de encuestas integrado en el chat.</li>
                 </ul>
-            </section>
+            </div>
+            
         </main>
     </div>
 </body>
