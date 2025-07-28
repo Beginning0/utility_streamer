@@ -33,6 +33,12 @@
         <input type="range" id="volume-slider" min="0" max="100" value="30">
         <label for="voice-select" style="margin-top: 15px;">Seleccionar Voz</label>
         <select id="voice-select"></select>
+        
+        <!-- ### NUEVO ELEMENTO ### -->
+        <label for="rank-select" style="margin-top: 15px;">Rango Mínimo para Voz</label>
+        <select id="rank-select"></select>
+        <!-- ### FIN DEL NUEVO ELEMENTO ### -->
+
     </div>
     <div class="admin-section">
         <h3>Gestión de Usuarios</h3>
@@ -45,11 +51,11 @@
         const volumeSlider = document.getElementById('volume-slider');
         const volumeValueSpan = document.getElementById('volume-value');
         const voiceSelect = document.getElementById('voice-select');
+        const rankSelect = document.getElementById('rank-select'); // <-- NUEVO
         const usersListDiv = document.getElementById('users-list');
 
         function renderUsersList() {
             usersListDiv.innerHTML = '';
-            // Ordenar por puntos de mayor a menor
             const sortedUsers = Object.entries(usersData).sort(([, a], [, b]) => b.points - a.points);
             sortedUsers.forEach(([username, data]) => {
                 const isManual = manualVoiceUsers.has(username);
@@ -68,11 +74,25 @@
             });
         }
 
+        // --- NUEVA FUNCIÓN ---
+        function populateRankSelect() {
+            // Creamos una copia invertida para que los rangos aparezcan en orden ascendente
+            const reversedRanks = [...RANKS].reverse(); 
+            rankSelect.innerHTML = '';
+            reversedRanks.forEach(rank => {
+                const option = document.createElement('option');
+                option.value = rank.name;
+                option.textContent = rank.name;
+                rankSelect.appendChild(option);
+            });
+        }
+
         function updatePanelUI() {
             voiceToggle.checked = voiceEnabled;
             volumeSlider.value = volume;
             volumeValueSpan.textContent = `${volume}%`;
             if (selectedVoice) voiceSelect.value = selectedVoice;
+            if (rankForVoice) rankSelect.value = rankForVoice; // <-- NUEVO
             renderUsersList();
         }
 
@@ -92,6 +112,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             loadState();
+            populateRankSelect(); // <-- NUEVO: Llenar el dropdown de rangos
             updatePanelUI();
             
             populateVoiceSelect();
@@ -99,7 +120,6 @@
                 speechSynthesis.onvoiceschanged = populateVoiceSelect;
             }
             
-            // Escuchar cambios desde el chat (por si se usan comandos)
             channel.onmessage = (event) => {
                 if (event.data && event.data.type === 'STATE_UPDATED') {
                     console.log('Panel: Estado actualizado desde el chat.');
@@ -109,19 +129,14 @@
             };
 
             // --- Event Listeners para los controles ---
-            voiceToggle.addEventListener('change', () => {
-                voiceEnabled = voiceToggle.checked;
-                saveState();
-            });
-
-            volumeSlider.addEventListener('input', () => {
-                volume = parseInt(volumeSlider.value);
-                volumeValueSpan.textContent = `${volume}%`;
-            });
+            voiceToggle.addEventListener('change', () => { voiceEnabled = voiceToggle.checked; saveState(); });
+            volumeSlider.addEventListener('input', () => { volume = parseInt(volumeSlider.value); volumeValueSpan.textContent = `${volume}%`; });
             volumeSlider.addEventListener('change', () => saveState());
+            voiceSelect.addEventListener('change', () => { selectedVoice = voiceSelect.value; saveState(); });
 
-            voiceSelect.addEventListener('change', () => {
-                selectedVoice = voiceSelect.value;
+            // --- NUEVO Event Listener para el selector de rango ---
+            rankSelect.addEventListener('change', () => {
+                rankForVoice = rankSelect.value;
                 saveState();
             });
 
@@ -135,7 +150,7 @@
                     manualVoiceUsers.add(user);
                 }
                 saveState();
-                renderUsersList(); // Actualizar solo la lista para una respuesta más rápida
+                renderUsersList(); 
             });
         });
     </script>
