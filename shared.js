@@ -8,19 +8,18 @@ const RANKS = [
     { name: 'RC6', points: 1000 }, { name: 'RC7', points: 1500 }, { name: 'G1', points: 2500 },
     { name: 'G2', points: 4000 }, { name: 'G3', points: 6000 }
 ].sort((a, b) => b.points - a.points);
-const RANK_FOR_VOICE = 'RC7';
+// La constante RANK_FOR_VOICE ha sido eliminada.
 
 // --- VARIABLES GLOBALES DE ESTADO ---
-// Estas variables se llenarán con `loadState()`
 let usersData = {};
 let manualVoiceUsers = new Set();
 let selectedVoice = '';
 let voices = [];
 let volume = 30;
 let voiceEnabled = false;
+let rankForVoice = 'RC7'; // <-- NUEVO: Variable para el rango, con 'RC7' como valor por defecto.
 
 // --- COMUNICACIÓN ENTRE PESTAÑAS ---
-// Usa un BroadcastChannel para que el chat y el panel se notifiquen de los cambios.
 const channel = new BroadcastChannel('utility_streamer_state');
 
 // --- FUNCIONES DE GESTIÓN DE ESTADO (localStorage) ---
@@ -30,7 +29,7 @@ function saveState() {
     localStorage.setItem('selectedVoice', selectedVoice);
     localStorage.setItem('volume', volume);
     localStorage.setItem('voiceEnabled', voiceEnabled);
-    // Notificar a la otra pestaña que el estado ha cambiado
+    localStorage.setItem('rankForVoice', rankForVoice); // <-- NUEVO: Guardar el rango seleccionado.
     channel.postMessage({ type: 'STATE_UPDATED' });
 }
 
@@ -41,9 +40,9 @@ function loadState() {
         selectedVoice = localStorage.getItem('selectedVoice') || '';
         volume = parseInt(localStorage.getItem('volume')) || 30;
         voiceEnabled = localStorage.getItem('voiceEnabled') === 'true';
+        rankForVoice = localStorage.getItem('rankForVoice') || 'RC7'; // <-- NUEVO: Cargar el rango seleccionado.
     } catch (e) {
         console.error("Error al cargar el estado desde localStorage:", e);
-        // Resetea a valores por defecto si los datos están corruptos
         usersData = {};
         manualVoiceUsers = new Set();
     }
@@ -55,21 +54,20 @@ function getUserData(displayName) {
     if (!usersData[lowerUser]) {
         usersData[lowerUser] = { points: 0, rank: 'Novato', displayName: displayName };
     }
-    // Siempre actualiza el displayName por si el usuario cambia mayúsculas/minúsculas
     usersData[lowerUser].displayName = displayName;
     return usersData[lowerUser];
 }
 
 function hasVoicePermission(displayName) {
     const lowerUser = displayName.toLowerCase();
-    if (manualVoiceUsers.has(lowerUser)) return true; // El permiso manual tiene prioridad
+    if (manualVoiceUsers.has(lowerUser)) return true;
     
     const userData = getUserData(displayName);
     const userRankIndex = RANKS.findIndex(r => r.name === userData.rank);
-    const requiredRankIndex = RANKS.findIndex(r => r.name === RANK_FOR_VOICE);
+    // MODIFICADO: Ahora usa la variable dinámica 'rankForVoice'
+    const requiredRankIndex = RANKS.findIndex(r => r.name === rankForVoice); 
     
     if (userRankIndex === -1 || requiredRankIndex === -1) return false;
     
-    // El índice es menor o igual porque RANKS está ordenado de mayor a menor
     return userRankIndex <= requiredRankIndex;
 }
