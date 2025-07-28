@@ -49,6 +49,7 @@
 
         function renderUsersList() {
             usersListDiv.innerHTML = '';
+            // Ordenar por puntos de mayor a menor
             const sortedUsers = Object.entries(usersData).sort(([, a], [, b]) => b.points - a.points);
             sortedUsers.forEach(([username, data]) => {
                 const isManual = manualVoiceUsers.has(username);
