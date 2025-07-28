@@ -140,9 +140,9 @@
             setTimeout(() => { if (messageDiv.parentNode) messageDiv.remove(); }, 25000);
         }
 
-        function updateRankForChat(userData) {
-            const currentPoints = userData.points;
-            const newRank = RANKS.find(r => currentPoints >= r.points);
+        function updateRankForChat(displayName) {
+            const userData = getUserData(displayName);
+            const newRank = RANKS.find(r => userData.points >= r.points);
             if (newRank && userData.rank !== newRank.name) {
                 const oldRank = userData.rank;
                 userData.rank = newRank.name;
@@ -153,10 +153,10 @@
             }
         }
 
-        function addPointsForChat(displayName, pointsToAdd) {
+        function addPointsForChat(displayName) {
             const userData = getUserData(displayName);
-            userData.points += pointsToAdd;
-            updateRankForChat(userData);
+            userData.points += POINTS_PER_MESSAGE;
+            updateRankForChat(displayName);
         }
         
         function processSpeechQueue() {
@@ -215,7 +215,7 @@
                     if (userToSet && !isNaN(points)) {
                         const userData = getUserData(userToSet);
                         userData.points = points;
-                        updateRankForChat(userData);
+                        updateRankForChat(userData.displayName);
                         addMessage('Sistema', 'Bot', `Puntos de ${userData.displayName} establecidos a ${points}.`, [], [], '#7289da', '');
                     }
                     break;
@@ -260,7 +260,7 @@
                     if (message.startsWith('!')) {
                         processCommand(source, displayName, message, isBroadcaster || isOwner);
                     } else {
-                        addPointsForChat(displayName, POINTS_PER_MESSAGE);
+                        addPointsForChat(displayName);
                         addMessage(source, displayName, message, badges, emotes, color, eventData.profileImageUrl || '');
                         if (hasVoicePermission(displayName)) {
                             speakMessage(`${displayName} dice: ${message}`);
