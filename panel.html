@@ -19,6 +19,51 @@
         .user-item button.remove-voice { background-color: #f04747; }
         .toggle-switch { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
         .toggle-switch label { margin-bottom: 0; }
+
+        /* --- NUEVOS ESTILOS PARA LA SECCIÓN DE APOYO --- */
+        .support-section {
+            background-color: #2c2f33;
+            border-top: 1px solid #4f545c;
+            margin-top: 30px;
+        }
+        .support-section p {
+            color: #b9bbbe;
+            font-size: 0.9em;
+        }
+        .support-section ul {
+            list-style: none;
+            padding: 0;
+            margin: 15px 0;
+        }
+        .support-section li {
+            margin-bottom: 12px;
+        }
+        .support-section a {
+            color: #f0f0f0;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            font-size: 1.1em;
+            transition: color 0.2s ease-in-out;
+        }
+        .support-section a:hover {
+            color: #7289da;
+        }
+        .support-section a::before {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            background-size: contain;
+            background-repeat: no-repeat;
+        }
+        a[href*="twitch.tv"]::before {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%239146FF"><path d="M11.571 4.714h1.715v5.143H11.57zm4.572 0H17.86v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0H6zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714v9.429z"/></svg>');
+        }
+        a[href*="youtube.com"]::before {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23FF0000"><path d="M21.582 7.234c-.23-.854-.888-1.512-1.742-1.742C18.258 5 12 5 12 5s-6.258 0-7.84.492c-.854.23-1.512.888-1.742 1.742C2 8.816 2 12 2 12s0 3.184.418 4.766c.23.854.888 1.512 1.742 1.742C5.742 19 12 19 12 19s6.258 0 7.84-.492c.854-.23 1.512-.888 1.742-1.742C22 15.184 22 12 22 12s0-3.184-.418-4.766zM9.75 15.428V8.572L15.428 12 9.75 15.428z"/></svg>');
+        }
     </style>
 </head>
 <body>
@@ -33,17 +78,25 @@
         <input type="range" id="volume-slider" min="0" max="100" value="30">
         <label for="voice-select" style="margin-top: 15px;">Seleccionar Voz</label>
         <select id="voice-select"></select>
-        
-        <!-- ### NUEVO ELEMENTO ### -->
         <label for="rank-select" style="margin-top: 15px;">Rango Mínimo para Voz</label>
         <select id="rank-select"></select>
-        <!-- ### FIN DEL NUEVO ELEMENTO ### -->
-
     </div>
     <div class="admin-section">
         <h3>Gestión de Usuarios</h3>
         <div id="users-list"></div>
     </div>
+    
+    <!-- ### NUEVA SECCIÓN DE APOYO ### -->
+    <div class="admin-section support-section">
+        <h3>Apoyo al Creador</h3>
+        <p>Si te gusta este proyecto y quieres ayudar a seguir desarrollándolo, puedes apoyar al creador original en sus redes sociales:</p>
+        <ul>
+            <li><a href="https://www.twitch.tv/shado_terro" target="_blank" rel="noopener noreferrer">shado_terro</a></li>
+            <li><a href="https://www.youtube.com/@ShadoTerroPlaying" target="_blank" rel="noopener noreferrer">ShadoTerro Playing</a></li>
+        </ul>
+        <p>Tu apoyo es muy importante y ayuda a mejorar y añadir más funcionalidades a Utility Streamer.</p>
+    </div>
+    <!-- ### FIN DE LA NUEVA SECCIÓN ### -->
 
     <script src="shared.js"></script>
     <script>
@@ -51,7 +104,7 @@
         const volumeSlider = document.getElementById('volume-slider');
         const volumeValueSpan = document.getElementById('volume-value');
         const voiceSelect = document.getElementById('voice-select');
-        const rankSelect = document.getElementById('rank-select'); // <-- NUEVO
+        const rankSelect = document.getElementById('rank-select');
         const usersListDiv = document.getElementById('users-list');
 
         function renderUsersList() {
@@ -74,9 +127,7 @@
             });
         }
 
-        // --- NUEVA FUNCIÓN ---
         function populateRankSelect() {
-            // Creamos una copia invertida para que los rangos aparezcan en orden ascendente
             const reversedRanks = [...RANKS].reverse(); 
             rankSelect.innerHTML = '';
             reversedRanks.forEach(rank => {
@@ -92,7 +143,7 @@
             volumeSlider.value = volume;
             volumeValueSpan.textContent = `${volume}%`;
             if (selectedVoice) voiceSelect.value = selectedVoice;
-            if (rankForVoice) rankSelect.value = rankForVoice; // <-- NUEVO
+            if (rankForVoice) rankSelect.value = rankForVoice;
             renderUsersList();
         }
 
@@ -112,7 +163,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             loadState();
-            populateRankSelect(); // <-- NUEVO: Llenar el dropdown de rangos
+            populateRankSelect();
             updatePanelUI();
             
             populateVoiceSelect();
@@ -128,17 +179,12 @@
                 }
             };
 
-            // --- Event Listeners para los controles ---
+            // Event Listeners
             voiceToggle.addEventListener('change', () => { voiceEnabled = voiceToggle.checked; saveState(); });
             volumeSlider.addEventListener('input', () => { volume = parseInt(volumeSlider.value); volumeValueSpan.textContent = `${volume}%`; });
             volumeSlider.addEventListener('change', () => saveState());
             voiceSelect.addEventListener('change', () => { selectedVoice = voiceSelect.value; saveState(); });
-
-            // --- NUEVO Event Listener para el selector de rango ---
-            rankSelect.addEventListener('change', () => {
-                rankForVoice = rankSelect.value;
-                saveState();
-            });
+            rankSelect.addEventListener('change', () => { rankForVoice = rankSelect.value; saveState(); });
 
             usersListDiv.addEventListener('click', (e) => {
                 const button = e.target.closest('button');
