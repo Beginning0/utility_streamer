@@ -1,6 +1,6 @@
 // shared.js - Lógica y datos compartidos entre el chat y el panel
 
-// --- CONFIGURACIÓN ---
+// --- CONSTANTES DE CONFIGURACIÓN ---
 const POINTS_PER_MESSAGE = 1;
 const RANKS = [
     { name: 'Novato', points: 0 }, { name: 'RC1', points: 50 }, { name: 'RC2', points: 150 },
@@ -10,8 +10,8 @@ const RANKS = [
 ].sort((a, b) => b.points - a.points);
 const RANK_FOR_VOICE = 'RC7';
 
-// --- ESTADO GLOBAL ---
-// Estas variables serán pobladas por la función loadState()
+// --- VARIABLES GLOBALES DE ESTADO ---
+// Estas variables se llenarán con `loadState()`
 let usersData = {};
 let manualVoiceUsers = new Set();
 let selectedVoice = '';
@@ -19,8 +19,9 @@ let voices = [];
 let volume = 30;
 let voiceEnabled = false;
 
-// --- CANAL DE COMUNICACIÓN ENTRE PESTAÑAS ---
-const channel = new BroadcastChannel('streamer_tool_channel');
+// --- COMUNICACIÓN ENTRE PESTAÑAS ---
+// Usa un BroadcastChannel para que el chat y el panel se notifiquen de los cambios.
+const channel = new BroadcastChannel('utility_streamer_state');
 
 // --- FUNCIONES DE GESTIÓN DE ESTADO (localStorage) ---
 function saveState() {
@@ -29,16 +30,23 @@ function saveState() {
     localStorage.setItem('selectedVoice', selectedVoice);
     localStorage.setItem('volume', volume);
     localStorage.setItem('voiceEnabled', voiceEnabled);
-    // Notificar a otras pestañas que el estado ha cambiado
+    // Notificar a la otra pestaña que el estado ha cambiado
     channel.postMessage({ type: 'STATE_UPDATED' });
 }
 
 function loadState() {
-    usersData = JSON.parse(localStorage.getItem('usersData')) || {};
-    manualVoiceUsers = new Set(JSON.parse(localStorage.getItem('manualVoiceUsers')) || []);
-    selectedVoice = localStorage.getItem('selectedVoice') || '';
-    volume = parseInt(localStorage.getItem('volume')) || 30;
-    voiceEnabled = localStorage.getItem('voiceEnabled') === 'true';
+    try {
+        usersData = JSON.parse(localStorage.getItem('usersData')) || {};
+        manualVoiceUsers = new Set(JSON.parse(localStorage.getItem('manualVoiceUsers')) || []);
+        selectedVoice = localStorage.getItem('selectedVoice') || '';
+        volume = parseInt(localStorage.getItem('volume')) || 30;
+        voiceEnabled = localStorage.getItem('voiceEnabled') === 'true';
+    } catch (e) {
+        console.error("Error al cargar el estado desde localStorage:", e);
+        // Resetea a valores por defecto si los datos están corruptos
+        usersData = {};
+        manualVoiceUsers = new Set();
+    }
 }
 
 // --- LÓGICA DE USUARIOS, PUNTOS Y RANGOS ---
@@ -47,16 +55,21 @@ function getUserData(displayName) {
     if (!usersData[lowerUser]) {
         usersData[lowerUser] = { points: 0, rank: 'Novato', displayName: displayName };
     }
+    // Siempre actualiza el displayName por si el usuario cambia mayúsculas/minúsculas
     usersData[lowerUser].displayName = displayName;
     return usersData[lowerUser];
 }
 
 function hasVoicePermission(displayName) {
     const lowerUser = displayName.toLowerCase();
-    if (manualVoiceUsers.has(lowerUser)) return true;
+    if (manualVoiceUsers.has(lowerUser)) return true; // El permiso manual tiene prioridad
+    
     const userData = getUserData(displayName);
     const userRankIndex = RANKS.findIndex(r => r.name === userData.rank);
     const requiredRankIndex = RANKS.findIndex(r => r.name === RANK_FOR_VOICE);
+    
     if (userRankIndex === -1 || requiredRankIndex === -1) return false;
+    
+    // El índice es menor o igual porque RANKS está ordenado de mayor a menor
     return userRankIndex <= requiredRankIndex;
 }
