@@ -12,7 +12,7 @@ const RANKS = [
 // --- VARIABLES GLOBALES DE ESTADO ---
 let usersData = {};
 let manualVoiceUsers = new Set();
-let ttsBlockedUsers = new Set(); // <-- NUEVO: Lista de bloqueo para TTS
+let ttsBlockedUsers = new Set();
 let selectedVoice = '';
 let voices = [];
 let volume = 30;
@@ -26,7 +26,7 @@ const channel = new BroadcastChannel('utility_streamer_state');
 function saveState() {
     localStorage.setItem('usersData', JSON.stringify(usersData));
     localStorage.setItem('manualVoiceUsers', JSON.stringify([...manualVoiceUsers]));
-    localStorage.setItem('ttsBlockedUsers', JSON.stringify([...ttsBlockedUsers])); // <-- NUEVO
+    localStorage.setItem('ttsBlockedUsers', JSON.stringify([...ttsBlockedUsers]));
     localStorage.setItem('selectedVoice', selectedVoice);
     localStorage.setItem('volume', volume);
     localStorage.setItem('voiceEnabled', voiceEnabled);
@@ -38,7 +38,7 @@ function loadState() {
     try {
         usersData = JSON.parse(localStorage.getItem('usersData')) || {};
         manualVoiceUsers = new Set(JSON.parse(localStorage.getItem('manualVoiceUsers')) || []);
-        ttsBlockedUsers = new Set(JSON.parse(localStorage.getItem('ttsBlockedUsers')) || []); // <-- NUEVO
+        ttsBlockedUsers = new Set(JSON.parse(localStorage.getItem('ttsBlockedUsers')) || []);
         selectedVoice = localStorage.getItem('selectedVoice') || '';
         volume = parseInt(localStorage.getItem('volume')) || 30;
         voiceEnabled = localStorage.getItem('voiceEnabled') === 'true';
@@ -50,22 +50,30 @@ function loadState() {
 }
 
 // --- LÓGICA DE USUARIOS, PUNTOS Y RANGOS ---
-function getUserData(displayName, platform) { // <-- MODIFICADO: Acepta la plataforma
+function getUserData(displayName, platform) {
     const lowerUser = displayName.toLowerCase();
     if (!usersData[lowerUser]) {
+        // Si el usuario es nuevo, lo creamos con toda la información
         usersData[lowerUser] = { points: 0, rank: 'Novato', displayName: displayName, platform: platform };
+    } else {
+        // --- CORRECCIÓN CLAVE ---
+        // Si el usuario ya existe, nos aseguramos de que su plataforma esté registrada.
+        // Esto corrige a los usuarios antiguos que no tenían este dato.
+        if (platform && !usersData[lowerUser].platform) {
+            usersData[lowerUser].platform = platform;
+        }
+        // Siempre actualizamos el displayName por si cambia mayúsculas/minúsculas
+        usersData[lowerUser].displayName = displayName;
     }
-    usersData[lowerUser].displayName = displayName;
-    usersData[lowerUser].platform = platform; // <-- NUEVO: Siempre actualiza la plataforma
     return usersData[lowerUser];
 }
 
-function hasVoicePermission(displayName) {
+function hasVoicePermission(displayName, platform) {
     const lowerUser = displayName.toLowerCase();
-    if (ttsBlockedUsers.has(lowerUser)) return false; // <-- NUEVO: Si está bloqueado, no tiene permiso.
+    if (ttsBlockedUsers.has(lowerUser)) return false;
     if (manualVoiceUsers.has(lowerUser)) return true;
     
-    const userData = getUserData(displayName);
+    const userData = getUserData(displayName, platform);
     const userRankIndex = RANKS.findIndex(r => r.name === userData.rank);
     const requiredRankIndex = RANKS.findIndex(r => r.name === rankForVoice); 
     
