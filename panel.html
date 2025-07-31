@@ -10,60 +10,25 @@
         .admin-section { background-color: #36393f; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: bold; }
         input[type="text"], select { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #4f545c; background-color: #40444b; color: #f0f0f0; box-sizing: border-box; }
-        button { padding: 8px 12px; border-radius: 4px; border: none; background-color: #7289da; color: white; cursor: pointer; font-weight: bold; margin-left: 5px; }
+        button { padding: 8px 12px; border-radius: 4px; border: none; background-color: #7289da; color: white; cursor: pointer; font-weight: bold; }
         button:hover { background-color: #677bc4; }
-        #users-list .user-item { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; background-color: #40444b; padding: 8px; border-radius: 4px; margin-bottom: 5px; }
-        .user-info { font-weight: bold; }
+        .input-group { display: flex; gap: 5px; margin-bottom: 10px; }
+        #users-list .user-item, #tts-blocked-list .blocked-item { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; background-color: #40444b; padding: 8px; border-radius: 4px; margin-bottom: 5px; }
+        .user-info { font-weight: bold; display: flex; align-items: center; gap: 8px; }
         .user-stats { font-size: 0.8em; color: #b9bbbe; }
-        .user-item button.add-voice { background-color: #43b581; }
-        .user-item button.remove-voice { background-color: #f04747; }
+        .user-item button.add-voice, .blocked-item button { background-color: #43b581; }
+        .user-item button.remove-voice, .blocked-item button { background-color: #f04747; }
         .toggle-switch { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
         .toggle-switch label { margin-bottom: 0; }
-
-        /* --- NUEVOS ESTILOS PARA LA SECCIÓN DE APOYO --- */
-        .support-section {
-            background-color: #2c2f33;
-            border-top: 1px solid #4f545c;
-            margin-top: 30px;
-        }
-        .support-section p {
-            color: #b9bbbe;
-            font-size: 0.9em;
-        }
-        .support-section ul {
-            list-style: none;
-            padding: 0;
-            margin: 15px 0;
-        }
-        .support-section li {
-            margin-bottom: 12px;
-        }
-        .support-section a {
-            color: #f0f0f0;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            font-size: 1.1em;
-            transition: color 0.2s ease-in-out;
-        }
-        .support-section a:hover {
-            color: #7289da;
-        }
-        .support-section a::before {
-            content: '';
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            margin-right: 12px;
-            background-size: contain;
-            background-repeat: no-repeat;
-        }
-        a[href*="twitch.tv"]::before {
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%239146FF"><path d="M11.571 4.714h1.715v5.143H11.57zm4.572 0H17.86v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0H6zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714v9.429z"/></svg>');
-        }
-        a[href*="youtube.com"]::before {
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23FF0000"><path d="M21.582 7.234c-.23-.854-.888-1.512-1.742-1.742C18.258 5 12 5 12 5s-6.258 0-7.84.492c-.854.23-1.512.888-1.742 1.742C2 8.816 2 12 2 12s0 3.184.418 4.766c.23.854.888 1.512 1.742 1.742C5.742 19 12 19 12 19s6.258 0 7.84-.492c.854-.23 1.512-.888 1.742-1.742C22 15.184 22 12 22 12s0-3.184-.418-4.766zM9.75 15.428V8.572L15.428 12 9.75 15.428z"/></svg>');
-        }
+        .platform-logo { width: 16px; height: 16px; }
+        .support-section { background-color: #2c2f33; border-top: 1px solid #4f545c; margin-top: 30px; }
+        .support-section p { color: #b9bbbe; font-size: 0.9em; }
+        .support-section ul { list-style: none; padding: 0; margin: 15px 0; }
+        .support-section li { margin-bottom: 12px; }
+        .support-section a { color: #f0f0f0; text-decoration: none; display: inline-flex; align-items: center; font-size: 1.1em; transition: color 0.2s ease-in-out; }
+        .support-section a:hover { color: #7289da; }
+        a[href*="twitch.tv"]::before { content: ''; display: inline-block; width: 20px; height: 20px; margin-right: 12px; background-size: contain; background-repeat: no-repeat; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%239146FF"><path d="M11.571 4.714h1.715v5.143H11.57zm4.572 0H17.86v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0H6zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714v9.429z"/></svg>'); }
+        a[href*="youtube.com"]::before { content: ''; display: inline-block; width: 20px; height: 20px; margin-right: 12px; background-size: contain; background-repeat: no-repeat; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23FF0000"><path d="M21.582 7.234c-.23-.854-.888-1.512-1.742-1.742C18.258 5 12 5 12 5s-6.258 0-7.84.492c-.854.23-1.512.888-1.742 1.742C2 8.816 2 12 2 12s0 3.184.418 4.766c.23.854.888 1.512 1.742 1.742C5.742 19 12 19 12 19s6.258 0 7.84-.492c.854-.23 1.512.888 1.742-1.742C22 15.184 22 12 22 12s0-3.184-.418-4.766zM9.75 15.428V8.572L15.428 12 9.75 15.428z"/></svg>'); }
     </style>
 </head>
 <body>
@@ -82,11 +47,18 @@
         <select id="rank-select"></select>
     </div>
     <div class="admin-section">
+        <h3>Bloqueo de Voz TTS</h3>
+        <p style="font-size:0.9em; color:#b9bbbe; margin-top:-10px;">Añade usuarios (bots) a los que quieras impedirles usar la voz, sin importar su rango.</p>
+        <div class="input-group">
+            <input type="text" id="tts-block-input" placeholder="Nombre de usuario exacto">
+            <button id="tts-block-btn">Bloquear</button>
+        </div>
+        <div id="tts-blocked-list"></div>
+    </div>
+    <div class="admin-section">
         <h3>Gestión de Usuarios</h3>
         <div id="users-list"></div>
     </div>
-    
-    <!-- ### NUEVA SECCIÓN DE APOYO ### -->
     <div class="admin-section support-section">
         <h3>Apoyo al Creador</h3>
         <p>Si te gusta este proyecto y quieres ayudar a seguir desarrollándolo, puedes apoyar al creador original en sus redes sociales:</p>
@@ -94,9 +66,7 @@
             <li><a href="https://www.twitch.tv/shado_terro" target="_blank" rel="noopener noreferrer">shado_terro</a></li>
             <li><a href="https://www.youtube.com/@ShadoTerroPlaying" target="_blank" rel="noopener noreferrer">ShadoTerro Playing</a></li>
         </ul>
-        <p>Tu apoyo es muy importante y ayuda a mejorar y añadir más funcionalidades a Utility Streamer.</p>
     </div>
-    <!-- ### FIN DE LA NUEVA SECCIÓN ### -->
 
     <script src="shared.js"></script>
     <script>
@@ -106,60 +76,50 @@
         const voiceSelect = document.getElementById('voice-select');
         const rankSelect = document.getElementById('rank-select');
         const usersListDiv = document.getElementById('users-list');
+        const ttsBlockInput = document.getElementById('tts-block-input');
+        const ttsBlockBtn = document.getElementById('tts-block-btn');
+        const ttsBlockedListDiv = document.getElementById('tts-blocked-list');
+
+        const twitchIcon = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%239146FF" d="M11.571 4.714h1.715v5.143H11.57zm4.572 0H17.86v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0H6zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714v9.429z"/></svg>';
+        const youtubeIcon = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%23FF0000" d="M21.582 7.234c-.23-.854-.888-1.512-1.742-1.742C18.258 5 12 5 12 5s-6.258 0-7.84.492c-.854.23-1.512.888-1.742 1.742C2 8.816 2 12 2 12s0 3.184.418 4.766c.23.854.888 1.512 1.742 1.742C5.742 19 12 19 12 19s6.258 0 7.84-.492c.854-.23 1.512.888 1.742-1.742C22 15.184 22 12 22 12s0-3.184-.418-4.766zM9.75 15.428V8.572L15.428 12 9.75 15.428z"/></svg>';
+
+        function truncateString(str, num) { return str.length > num ? str.slice(0, num > 3 ? num - 3 : num) + '...' : str; }
+        
+        function renderBlockedList() {
+            ttsBlockedListDiv.innerHTML = '';
+            ttsBlockedUsers.forEach(user => {
+                const item = document.createElement('div');
+                item.className = 'blocked-item';
+                item.innerHTML = `<span>${user}</span><button data-user="${user}">Desbloquear</button>`;
+                ttsBlockedListDiv.appendChild(item);
+            });
+        }
 
         function renderUsersList() {
             usersListDiv.innerHTML = '';
             const sortedUsers = Object.entries(usersData).sort(([, a], [, b]) => b.points - a.points);
             sortedUsers.forEach(([username, data]) => {
                 const isManual = manualVoiceUsers.has(username);
+                const platformIconSrc = data.platform === 'YouTube' ? youtubeIcon : twitchIcon;
                 const userItem = document.createElement('div');
                 userItem.className = 'user-item';
                 userItem.innerHTML = `
-                    <div>
-                        <span class="user-info">${data.displayName}</span>
-                        <span class="user-stats">${data.rank} - ${data.points} Pts</span>
+                    <div class="user-info">
+                        <img src="${platformIconSrc}" class="platform-logo" alt="${data.platform}">
+                        <div>
+                           <span title="${data.displayName}">${truncateString(data.displayName, 18)}</span>
+                           <div class="user-stats">${data.rank} - ${data.points} Pts</div>
+                        </div>
                     </div>
-                    <button data-user="${username}" class="${isManual ? 'remove-voice' : 'add-voice'}">
-                        ${isManual ? 'Quitar Voz' : 'Dar Voz'}
-                    </button>
+                    <button data-user="${username}" class="${isManual ? 'remove-voice' : 'add-voice'}">${isManual ? 'Quitar Voz' : 'Dar Voz'}</button>
                 `;
                 usersListDiv.appendChild(userItem);
             });
         }
 
-        function populateRankSelect() {
-            const reversedRanks = [...RANKS].reverse(); 
-            rankSelect.innerHTML = '';
-            reversedRanks.forEach(rank => {
-                const option = document.createElement('option');
-                option.value = rank.name;
-                option.textContent = rank.name;
-                rankSelect.appendChild(option);
-            });
-        }
-
-        function updatePanelUI() {
-            voiceToggle.checked = voiceEnabled;
-            volumeSlider.value = volume;
-            volumeValueSpan.textContent = `${volume}%`;
-            if (selectedVoice) voiceSelect.value = selectedVoice;
-            if (rankForVoice) rankSelect.value = rankForVoice;
-            renderUsersList();
-        }
-
-        function populateVoiceSelect() {
-            voices = speechSynthesis.getVoices();
-            if (voices.length === 0) return;
-            const currentSelected = voiceSelect.value;
-            voiceSelect.innerHTML = '';
-            voices.forEach(voice => {
-                const option = document.createElement('option');
-                option.textContent = `${voice.name} (${voice.lang})`;
-                option.value = voice.name;
-                voiceSelect.appendChild(option);
-            });
-            voiceSelect.value = currentSelected || selectedVoice;
-        }
+        function populateRankSelect() { const reversedRanks = [...RANKS].reverse(); rankSelect.innerHTML = ''; reversedRanks.forEach(rank => { const option = document.createElement('option'); option.value = rank.name; option.textContent = rank.name; rankSelect.appendChild(option); }); }
+        function populateVoiceSelect() { voices = speechSynthesis.getVoices(); if (voices.length === 0) return; const currentSelected = voiceSelect.value; voiceSelect.innerHTML = ''; voices.forEach(voice => { const option = document.createElement('option'); option.textContent = `${voice.name} (${voice.lang})`; option.value = voice.name; voiceSelect.appendChild(option); }); voiceSelect.value = currentSelected || selectedVoice; }
+        function updatePanelUI() { voiceToggle.checked = voiceEnabled; volumeSlider.value = volume; volumeValueSpan.textContent = `${volume}%`; if (selectedVoice) voiceSelect.value = selectedVoice; if (rankForVoice) rankSelect.value = rankForVoice; renderUsersList(); renderBlockedList(); }
 
         document.addEventListener('DOMContentLoaded', () => {
             loadState();
@@ -167,17 +127,9 @@
             updatePanelUI();
             
             populateVoiceSelect();
-            if (speechSynthesis.onvoiceschanged !== undefined) {
-                speechSynthesis.onvoiceschanged = populateVoiceSelect;
-            }
+            if (speechSynthesis.onvoiceschanged !== undefined) { speechSynthesis.onvoiceschanged = populateVoiceSelect; }
             
-            channel.onmessage = (event) => {
-                if (event.data && event.data.type === 'STATE_UPDATED') {
-                    console.log('Panel: Estado actualizado desde el chat.');
-                    loadState();
-                    updatePanelUI();
-                }
-            };
+            channel.onmessage = (event) => { if (event.data && event.data.type === 'STATE_UPDATED') { console.log('Panel: Estado actualizado desde el chat.'); loadState(); updatePanelUI(); } };
 
             // Event Listeners
             voiceToggle.addEventListener('change', () => { voiceEnabled = voiceToggle.checked; saveState(); });
@@ -185,18 +137,23 @@
             volumeSlider.addEventListener('change', () => saveState());
             voiceSelect.addEventListener('change', () => { selectedVoice = voiceSelect.value; saveState(); });
             rankSelect.addEventListener('change', () => { rankForVoice = rankSelect.value; saveState(); });
+            
+            ttsBlockBtn.addEventListener('click', () => {
+                const userToBlock = ttsBlockInput.value.trim().toLowerCase();
+                if(userToBlock) { ttsBlockedUsers.add(userToBlock); saveState(); renderBlockedList(); ttsBlockInput.value = ''; }
+            });
+
+            ttsBlockedListDiv.addEventListener('click', (e) => {
+                if(e.target.tagName === 'BUTTON') { const userToUnblock = e.target.dataset.user; ttsBlockedUsers.delete(userToUnblock); saveState(); renderBlockedList(); }
+            });
 
             usersListDiv.addEventListener('click', (e) => {
                 const button = e.target.closest('button');
                 if (!button) return;
                 const user = button.getAttribute('data-user');
-                if (manualVoiceUsers.has(user)) {
-                    manualVoiceUsers.delete(user);
-                } else {
-                    manualVoiceUsers.add(user);
-                }
+                if (manualVoiceUsers.has(user)) { manualVoiceUsers.delete(user); } else { manualVoiceUsers.add(user); }
                 saveState();
-                renderUsersList(); 
+                renderUsersList();
             });
         });
     </script>
