@@ -51,8 +51,30 @@
         function processSpeechQueue() { if (!voiceEnabled || speechQueue.length === 0 || speechSynthesis.speaking) return; loadState(); const messageToSpeak = speechQueue.shift(); const utterance = new SpeechSynthesisUtterance(messageToSpeak); voices = speechSynthesis.getVoices(); const voice = voices.find(v => v.name === selectedVoice) || voices[0]; if (voice) { utterance.voice = voice; utterance.lang = voice.lang; } utterance.volume = volume / 100; utterance.onend = () => processSpeechQueue(); utterance.onerror = (event) => { console.error('TTS Error:', event); processSpeechQueue(); }; speechSynthesis.speak(utterance); }
         function speakMessage(message) { speechQueue.push(message); processSpeechQueue(); }
         function processCommand(platform, displayName, message, isOwner) { const [command, ...args] = message.split(' '); const input = args.join(' ').trim(); const lowerInput = input.toLowerCase(); if (command.toLowerCase() === '!rank' || command.toLowerCase() === '!puntos') { const userToCheck = input || displayName; const userData = getUserData(userToCheck, platform); const reply = `${userData.displayName}, es ${userData.rank} con ${userData.points} puntos.`; addMessage('Sistema', 'Bot', reply, [], [], '#7289da', ''); return; } if (!isOwner) return; switch (command.toLowerCase()) { case '!agregar': if (lowerInput) { manualVoiceUsers.add(lowerInput); addMessage('Sistema', 'Bot', `Permiso de voz manual para "${input}".`, [], [], '#43b581', ''); } break; case '!eliminar': if (lowerInput) { manualVoiceUsers.delete(lowerInput); addMessage('Sistema', 'Bot', `Permiso de voz manual quitado para "${input}".`, [], [], '#f04747', ''); } break; case '!setpuntos': const [userToSet, pointsStr] = args; const points = parseInt(pointsStr); if (userToSet && !isNaN(points)) { const userData = getUserData(userToSet, platform); userData.points = points; updateRankForChat(userData.displayName, platform); addMessage('Sistema', 'Bot', `Puntos de ${userData.displayName} establecidos a ${points}.`, [], [], '#7289da', ''); } break; default: return; } saveState(); }
+         // --- ¡NUEVA FUNCIÓN PARA ENVIAR DATOS A LYRA! ---
+        async function sendToLyra(data) {
+            try {
+                await fetch('http://localhost:8989/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                // No necesitamos hacer nada con la respuesta, solo enviar.
+                console.log('Message sent to Lyra:', data);
+            } catch (error) {
+                console.error('Failed to send message to Lyra:', error);
+            }
+        }
         document.addEventListener('DOMContentLoaded', () => { loadState(); channel.onmessage = (event) => { if (event.data && event.data.type === 'STATE_UPDATED') { console.log('Chat: Estado actualizado desde el panel.'); loadState(); } }; const client = new StreamerbotClient({ host: '127.0.0.1', port: 8080, endpoint: '/', subscribe: { 'YouTube': ['Message'], 'Twitch': ['ChatMessage'] }, onData: (data) => { let eventData, source; try { if (data.event.source === 'Twitch' && data.event.type === 'ChatMessage') { eventData = data.data.message; source = 'Twitch'; } else if (data.event.source === 'YouTube' && data.event.type === 'Message') { eventData = { ...data.data.user, ...data.data, displayName: data.data.user.name, isBroadcaster: data.data.user.isOwner }; source = 'YouTube'; } else { return; } } catch (e) { return; } const { displayName, message, badges = [], emotes = [], color = '#FF0000', isBroadcaster, isOwner } = eventData; if (!displayName || !message) return; if (message.startsWith('!')) { processCommand(source, displayName, message, isBroadcaster || isOwner); } else { addPointsForChat(displayName, source); addMessage(source, displayName, message, badges, emotes, color, eventData.profileImageUrl || ''); 
-            // --- CORRECCIÓN CLAVE ---
+            const lyraPayload = {
+                        username: displayName,
+                        message: message,
+                        platform: source
+                    };
+                    sendToLyra(lyraPayload);
+        // --- CORRECCIÓN CLAVE ---
             if (hasVoicePermission(displayName, source)) {
                 speakMessage(`${displayName}: ${message}`);
             }
