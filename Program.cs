@@ -73,7 +73,7 @@ class Program
     private static string? _lastMonsterContext = null;
     private static string? _lastSpecificQueryContext = null;
     private static string? _lastObjective = null;
-    
+
     // --- NUEVO INTERRUPTOR DE ESTADO ---
     // --- NUEVA VARIABLE: MEMORIA DE JUEGOS ---
     private static readonly HashSet<string> _usedMonsterNames = new HashSet<string>();
@@ -368,12 +368,12 @@ JSON DE DECISIÓN:
                 else if (lowerMessage.Contains("cuenta") && lowerMessage.Contains("historia"))
                 {
                     await LyraSpeak("Por supuesto. Dejad que consulte una de mis crónicas...", source);
-                    await TellMonsterStory();
+                    await TellMonsterStoryAsync(); // <- CAMBIO: Llamar a la versión Async
                 }
                 else if (lowerMessage.Contains("adivinanza"))
                 {
                     await LyraSpeak("¡Un enigma! Excelente para mantener la mente afilada.", source);
-                    await MonsterRiddle();
+                    await MonsterRiddleAsync(); // <- CAMBIO: Llamar a la versión Async
                 }
                 else
                 {
@@ -1381,44 +1381,30 @@ JSON DE SALIDA:";
 
     static async Task GuessTheMonsterGameAsync(string juego)
     {
-        // Activamos el interruptor al entrar al juego
         _isGameActive = true;
-        try // Usamos un bloque try para manejar el juego
+        try
         {
             const string juegoConAudio = "mh4u";
 
-            string path = "Biblioteca_cache.json";
-            if (!File.Exists(path))
+            // 1. Usamos la función de ayuda para obtener monstruos elegibles
+            var monsterPool = GetAvailableMonsters(m => !string.IsNullOrEmpty(m.RoarAudioUrl) && m.GameKey == juegoConAudio);
+
+            // 2. Si la piscina está vacía, la reiniciamos y lo intentamos de nuevo
+            if (!monsterPool.Any())
             {
-                await LyraSpeak("Mis archivos de crónicas no están disponibles. No puedo iniciar el juego.", "Lyra");
-                return;
+                await LyraSpeak("Parece que ya hemos jugado con todos los monstruos con rugidos conocidos. ¡Reiniciando el ciclo!", "Lyra");
+                _usedMonsterNames.Clear();
+                monsterPool = GetAvailableMonsters(m => !string.IsNullOrEmpty(m.RoarAudioUrl) && m.GameKey == juegoConAudio);
+                if (!monsterPool.Any()) { await LyraSpeak("Vaya, parece que no encuentro ningún monstruo para jugar ahora mismo.", "Lyra"); return; }
             }
 
-            var rawJson = await File.ReadAllTextAsync(path);
-            var biblioteca = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, MonsterData>>>(rawJson);
-
-            if (biblioteca == null || !biblioteca.ContainsKey(juegoConAudio))
-            {
-                await LyraSpeak($"No tengo información sobre los monstruos de {juegoConAudio} todavía.", "Lyra");
-                return;
-            }
-
-            var monstruosConAudio = biblioteca[juegoConAudio].Values
-                .Where(m => !string.IsNullOrEmpty(m.RoarAudioUrl))
-                .ToList();
-
-            if (!monstruosConAudio.Any())
-            {
-                await LyraSpeak($"Vaya, parece que no he catalogado los rugidos de los monstruos para {juegoConAudio}.", "Lyra");
-                return;
-            }
-
-            var random = new Random();
-            var monstruoElegido = monstruosConAudio[random.Next(monstruosConAudio.Count)];
-
+            // 3. Seleccionamos el monstruo y lo guardamos en la memoria de usados
+            var monstruoElegido = monsterPool[new Random().Next(monsterPool.Count)];
             string nombreMonstruo = monstruoElegido.Name;
             string? roarUrl = monstruoElegido.RoarAudioUrl;
+            _usedMonsterNames.Add(nombreMonstruo);
 
+            // 4. Usamos las plantillas y toda la lógica interactiva que te gustaba
             string[] plantillas =
             {
             $"Agudizad el oído, cazadores... Un eco resuena en la distancia. ¿Podéis nombrar a la bestia?",
@@ -1427,140 +1413,194 @@ JSON DE SALIDA:";
             $"Un rugido que hiela la sangre. Solo los más valientes lo han escuchado y vivido para contarlo. ¿Identificáis al monstruo?"
         };
 
-            var historia = plantillas[random.Next(plantillas.Length)];
+            var historia = plantillas[new Random().Next(plantillas.Length)];
             await LyraSpeak(historia, "Lyra");
 
             Console.WriteLine($"[Juego]: Reproduciendo rugido de '{nombreMonstruo}' desde {roarUrl}");
             await _audioService.PlaySoundFromUrl(roarUrl!);
 
-            await LyraSpeak("Tenéis 30 segundos para adivinar... Si queréis volver a escucharlo, decid 'repite' o 'no escuché'. ¡Que comience el desafío!", "Lyra");
-
-            var tiempoLimite = TimeSpan.FromSeconds(30);
-            var stopwatch = Stopwatch.StartNew();
-            string? ganador = null;
-
-            var cooldownRepeticion = TimeSpan.FromSeconds(10);
-            DateTime proximaRepeticionPermitida = DateTime.MinValue;
-
-            // Bucle del juego, que ahora tiene control exclusivo de la cola de chat.
-            while (stopwatch.Elapsed < tiempoLimite && string.IsNullOrEmpty(ganador))
-            {
-                if (_chatMessageQueue.TryDequeue(out var msg))
-                {
-                    string lowerMessage = msg.Message.Trim().ToLower();
-                    bool esPeticionRepetir = lowerMessage.Contains("repite") || lowerMessage.Contains("otra vez") || lowerMessage.Contains("no escuché");
-
-                    if (esPeticionRepetir)
-                    {
-                        if (DateTime.UtcNow >= proximaRepeticionPermitida)
-                        {
-                            await LyraSpeak("¡Claro! Escuchad con atención una vez más.", "Lyra");
-                            _ = _audioService.PlaySoundFromUrl(roarUrl!);
-                            proximaRepeticionPermitida = DateTime.UtcNow + cooldownRepeticion;
-                        }
-                        else
-                        {
-                            // Mensaje opcional para evitar que piensen que no funciona
-                            Console.WriteLine("[Juego]: Petición de repetir ignorada por cooldown.");
-                        }
-                    }
-                    else if (lowerMessage.Equals(nombreMonstruo, StringComparison.OrdinalIgnoreCase))
-                    {
-                        ganador = msg.Username;
-                        Console.WriteLine($"[Juego]: ¡'{ganador}' ha adivinado correctamente!");
-                    }
-                }
-                await Task.Delay(200);
-            }
-
-            stopwatch.Stop();
-
-            if (!string.IsNullOrEmpty(ganador))
-            {
-                await LyraSpeak($"¡Impresionante! El instinto de {ganador} es certero. La respuesta correcta era, en efecto, el {nombreMonstruo}. ¡Felicidades!", "Lyra");
-            }
-            else
-            {
-                await LyraSpeak($"¡El tiempo ha terminado! Un rugido difícil, sin duda. La criatura que escuchamos era el temible {nombreMonstruo}. ¡Mejor suerte la próxima vez, cazadores!", "Lyra");
-            }
+            // 5. La lógica de adivinanza ahora está en la función de ayuda `RunGuessingLogic`,
+            //    pero le añadimos la capacidad de repetir el sonido.
+            await RunGuessingLogic(nombreMonstruo, roarUrl);
         }
         finally
         {
-            // Este bloque se ejecuta SIEMPRE al salir del 'try',
-            // ya sea porque el juego terminó o por un error.
-            // Esto garantiza que el procesador principal vuelva a funcionar.
             _isGameActive = false;
-            Console.WriteLine("[Juego]: Juego finalizado. El procesador de chat principal ha sido reactivado.");
+            Console.WriteLine("[Juego]: Juego 'Adivina el Rugido' finalizado. Procesador de chat reactivado.");
         }
     }
 
     /// <summary>
     /// Maneja el comando para que Lyra cuente una historia basada en su conocimiento.
     /// </summary>
-    private static async Task TellMonsterStory()
+    private static async Task TellMonsterStoryAsync()
     {
-        Console.WriteLine("Lyra: Entendido, Director. Buscaré una crónica interesante en mis archivos...");
-
-        var randomMonster = _knowledgeService._knowledgeCache.Values
-            .SelectMany(gameDict => gameDict.Values)
-            .Where(m => !string.IsNullOrEmpty(m.Description))
-            .OrderBy(x => Guid.NewGuid())
-            .FirstOrDefault();
-
-        if (randomMonster == null)
+        _isGameActive = true;
+        try
         {
-            Console.WriteLine("Lyra: Vaya, mis archivos aún están un poco vacíos. Necesito aprender más para poder contar historias.");
-            return;
-        }
+            var monsterPool = GetAvailableMonsters(m => !string.IsNullOrEmpty(m.Description));
+            if (!monsterPool.Any())
+            {
+                await LyraSpeak("He contado crónicas de todas las bestias que conozco. Permíteme reiniciar mis archivos.", "Lyra");
+                _usedMonsterNames.Clear();
+                monsterPool = GetAvailableMonsters(m => !string.IsNullOrEmpty(m.Description));
+                if (!monsterPool.Any()) { await LyraSpeak("Mis archivos están vacíos por ahora, cazador.", "Lyra"); return; }
+            }
 
-        string prompt = $@"{LYRA_CORE_PERSONA}
+            var monstruoElegido = monsterPool[new Random().Next(monsterPool.Count)];
+            string nombreMonstruo = monstruoElegido.Name;
+            _usedMonsterNames.Add(nombreMonstruo);
+
+            string prompt = $@"{LYRA_CORE_PERSONA}
 ---
-Tu tarea es contar una breve historia o un dato curioso y fascinante sobre el siguiente monstruo, usando la descripción proporcionada como base. Sé dramática y erudita.
+Tu tarea es contar una breve historia o un dato curioso sobre un monstruo, pero en forma de enigma. No reveles su nombre. Termina preguntando '¿De qué criatura hablo?'.
 
-MONSTRUO: {randomMonster.Name}
-DESCRIPCIÓN BASE: ""{randomMonster.Description}""
+MONSTRUO: {monstruoElegido.Name}
+DESCRIPCIÓN BASE: ""{monstruoElegido.Description}""
 
-TU HISTORIA (en español, para la Quinta Flota):";
+TU CRÓNICA-ENIGMA (en español):";
 
-        string? story = await _ollamaService.AskLlava(prompt);
-        Console.WriteLine($"Lyra (Relato): {story ?? "Se me ha escapado la idea de la mente, disculpen."}");
+            string? storyRiddle = await _ollamaService.AskLlava(prompt);
+            await LyraSpeak(storyRiddle ?? $"Escuchad esta crónica... ¿Sabréis de quién se trata?", "Lyra");
+
+            await RunGuessingLogic(nombreMonstruo);
+        }
+        finally
+        {
+            _isGameActive = false;
+            Console.WriteLine("[Juego]: Juego 'Crónica Misteriosa' finalizado. Procesador de chat reactivado.");
+        }
     }
 
-    /// <summary>
-    /// Maneja el comando para que Lyra cree una adivinanza sobre un monstruo.
-    /// </summary>
-    private static async Task MonsterRiddle()
+    private static async Task MonsterRiddleAsync()
     {
-        Console.WriteLine("Lyra: ¡Una adivinanza! Preparando un enigma para la Quinta Flota...");
-
-        var randomMonster = _knowledgeService._knowledgeCache.Values
-            .SelectMany(gameDict => gameDict.Values)
-            .Where(m => !string.IsNullOrEmpty(m.Description))
-            .OrderBy(x => Guid.NewGuid())
-            .FirstOrDefault();
-
-        if (randomMonster == null)
+        _isGameActive = true;
+        try
         {
-            Console.WriteLine("Lyra: Necesito más conocimiento para crear buenos enigmas.");
-            return;
-        }
+            var monsterPool = GetAvailableMonsters(m => !string.IsNullOrEmpty(m.Description));
+            if (!monsterPool.Any())
+            {
+                await LyraSpeak("He puesto a prueba vuestro ingenio con todos mis enigmas. ¡Hora de crear nuevos!", "Lyra");
+                _usedMonsterNames.Clear();
+                monsterPool = GetAvailableMonsters(m => !string.IsNullOrEmpty(m.Description));
+                if (!monsterPool.Any()) { await LyraSpeak("Mi mente está en blanco para acertijos ahora mismo.", "Lyra"); return; }
+            }
 
-        string prompt = $@"{LYRA_CORE_PERSONA}
+            var monstruoElegido = monsterPool[new Random().Next(monsterPool.Count)];
+            string nombreMonstruo = monstruoElegido.Name;
+            _usedMonsterNames.Add(nombreMonstruo);
+
+            string prompt = $@"{LYRA_CORE_PERSONA}
 ---
 Tu tarea es crear una adivinanza de 2 o 3 líneas sobre el siguiente monstruo, basándote en su descripción. La adivinanza debe ser misteriosa pero justa. No uses su nombre.
 
-MONSTRUO: {randomMonster.Name}
-DESCRIPCIÓN BASE: ""{randomMonster.Description}""
+MONSTRUO: {monstruoElegido.Name}
+DESCRIPCIÓN BASE: ""{monstruoElegido.Description}""
 
 TU ADIVINANZA (en español):";
 
-        string? riddle = await _ollamaService.AskLlava(prompt);
-        Console.WriteLine($"Lyra (Enigma): {riddle}");
-        Console.WriteLine("Lyra: Tendrán 15 segundos para adivinar... ¡Tic, tac!");
+            string? riddle = await _ollamaService.AskLlava(prompt);
+            await LyraSpeak(riddle ?? $"Tengo un acertijo para vosotros... ¿Quién soy?", "Lyra");
 
-        await Task.Delay(15000);
+            await RunGuessingLogic(nombreMonstruo);
+        }
+        finally
+        {
+            _isGameActive = false;
+            Console.WriteLine("[Juego]: Juego 'Enigma del Cazador' finalizado. Procesador de chat reactivado.");
+        }
+    }
 
-        Console.WriteLine($"Lyra: ¡El tiempo ha terminado! La respuesta era... ¡El {randomMonster.Name}!");
+    // <summary>
+    /// Obtiene una lista de monstruos disponibles que cumplen una condición y no han sido usados recientemente.
+    /// </summary>
+    private static List<MonsterData> GetAvailableMonsters(Func<MonsterData, bool> predicate)
+    {
+        string path = "Biblioteca_cache.json";
+        if (!File.Exists(path)) return new List<MonsterData>();
+
+        var rawJson = File.ReadAllText(path);
+        // ¡OJO! Deserializamos a un tipo que nos da acceso a la clave del juego
+        var biblioteca = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, MonsterData>>>(rawJson);
+
+        if (biblioteca == null) return new List<MonsterData>();
+
+        // --- AQUÍ ESTÁ LA CORRECCIÓN ---
+        // Iteramos sobre el KeyValuePair<string, Dictionary<string, MonsterData>>
+        // Esto nos da acceso a la clave del juego (gameKvp.Key) y al diccionario de monstruos (gameKvp.Value)
+        return biblioteca
+            .SelectMany(gameKvp => gameKvp.Value.Values.Select(monster =>
+            {
+                monster.GameKey = gameKvp.Key; // Asignamos la clave del juego al monstruo
+                return monster;
+            }))
+            .Where(predicate) // Aplica el filtro específico (ej: tiene audio, tiene descripción)
+            .Where(m => !_usedMonsterNames.Contains(m.Name)) // Filtra los ya usados
+            .ToList();
+    }
+
+    /// <summary>
+    /// Contiene la lógica central de espera y adivinanza del chat, reutilizable por todos los juegos.
+    /// </summary>
+    /// <param name="correctAnswer">La respuesta que el chat debe adivinar.</param>
+    /// <param name="repeatableSoundUrl">Opcional: La URL del sonido a repetir si el usuario lo pide.</param>
+    private static async Task RunGuessingLogic(string correctAnswer, string? repeatableSoundUrl = null)
+    {
+        // Modificamos el mensaje si se puede repetir el sonido
+        if (!string.IsNullOrEmpty(repeatableSoundUrl))
+        {
+            await LyraSpeak("Tenéis 30 segundos... Si queréis volver a escucharlo, decid 'repite'. ¡Vuestro tiempo empieza ahora!", "Lyra");
+        }
+        else
+        {
+            await LyraSpeak("Tenéis 30 segundos para adivinar... ¡Vuestro tiempo empieza ahora!", "Lyra");
+        }
+
+        var tiempoLimite = TimeSpan.FromSeconds(30);
+        var stopwatch = Stopwatch.StartNew();
+        string? ganador = null;
+
+        var cooldownRepeticion = TimeSpan.FromSeconds(10);
+        DateTime proximaRepeticionPermitida = DateTime.MinValue;
+
+        while (stopwatch.Elapsed < tiempoLimite && string.IsNullOrEmpty(ganador))
+        {
+            if (_chatMessageQueue.TryDequeue(out var msg))
+            {
+                string lowerMessage = msg.Message.Trim().ToLower();
+                bool esPeticionRepetir = (lowerMessage.Contains("repite") || lowerMessage.Contains("otra vez") || lowerMessage.Contains("no escuché"));
+
+                // Solo intentamos repetir si hay una URL y la petición es válida
+                if (!string.IsNullOrEmpty(repeatableSoundUrl) && esPeticionRepetir)
+                {
+                    if (DateTime.UtcNow >= proximaRepeticionPermitida)
+                    {
+                        await LyraSpeak("¡Atención! Lo repetiré una vez más.", "Lyra");
+                        _ = _audioService.PlaySoundFromUrl(repeatableSoundUrl);
+                        proximaRepeticionPermitida = DateTime.UtcNow + cooldownRepeticion;
+                    }
+                }
+                // Si no es una petición de repetir, comprobamos si es la respuesta correcta
+                else if (lowerMessage.Equals(correctAnswer, StringComparison.OrdinalIgnoreCase))
+                {
+                    ganador = msg.Username;
+                    Console.WriteLine($"[Juego]: ¡'{ganador}' ha adivinado correctamente la respuesta: {correctAnswer}!");
+                }
+            }
+            await Task.Delay(200);
+        }
+
+        stopwatch.Stop();
+
+        // La lógica de anunciar al ganador es la misma
+        if (!string.IsNullOrEmpty(ganador))
+        {
+            await LyraSpeak($"¡Correcto, {ganador}! Tu conocimiento es tan afilado como una katana. La respuesta era el {correctAnswer}. ¡Bien hecho!", "Lyra");
+        }
+        else
+        {
+            await LyraSpeak($"¡El tiempo ha terminado! La respuesta que buscábamos era el {correctAnswer}. ¡Un buen desafío para la próxima cacería!", "Lyra");
+        }
     }
 
     #endregion
