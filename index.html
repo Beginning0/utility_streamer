@@ -14,8 +14,6 @@
         p, li { color: #b9bbbe; }
         a { color: #7289da; text-decoration: none; font-weight: bold; }
         a:hover { text-decoration: underline; }
-        .button { display: inline-block; background-color: #7289da; color: #fff; padding: 12px 25px; border-radius: 5px; text-decoration: none; font-weight: bold; margin-top: 10px; transition: background-color 0.3s ease; }
-        .button:hover { background-color: #677bc4; }
         .requisitos { background-color: #2f2b1a; border-left: 5px solid #ffc107; padding: 15px 20px; margin-bottom: 30px; border-radius: 5px; }
         .requisitos h3 { color: #ffc107; margin-top: 0; }
         ol.steps { list-style: none; padding-left: 0; counter-reset: step-counter; }
@@ -23,11 +21,17 @@
         ol.steps > li::before { content: counter(step-counter); position: absolute; left: 0; top: 0; width: 35px; height: 35px; background-color: #7289da; color: white; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 1.2em; }
         ul { list-style: disc; padding-left: 20px; }
         code { background-color: #202225; padding: 3px 6px; border-radius: 4px; font-family: "Courier New", Courier, monospace; color: #f1f1f1; }
-        .obs-key { background-color: #4f545c; color: #fff; padding: 2px 8px; border-radius: 4px; font-family: sans-serif; font-size: 0.9em; border: 1px solid #202225; }
-        .method-box { background-color: #36393f; padding: 25px; border: 1px solid #40444b; border-radius: 8px; margin-top: 20px; }
         .futura-herramienta { background-color: #2c2f33; padding: 25px; border: 2px dashed #4f545c; border-radius: 8px; text-align: center; margin-top: 40px; }
         .futura-herramienta h3 { color: #b9bbbe; }
         .futura-herramienta ul { list-style: none; padding: 0; color: #8e9297; }
+        
+        /* --- NUEVOS ESTILOS PARA LA GUÍA MEJORADA --- */
+        .url-box { display: flex; align-items: center; gap: 10px; background-color: #202225; padding: 10px; border-radius: 5px; margin-top: 10px; }
+        .url-box input { flex-grow: 1; background: transparent; border: none; color: #b9bbbe; font-family: "Courier New", Courier, monospace; }
+        .url-box button { background-color: #7289da; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; white-space: nowrap; }
+        .url-box button:hover { background-color: #677bc4; }
+        .video-container { position: relative; padding-bottom: 56.25%; /* 16:9 Aspect Ratio */ height: 0; overflow: hidden; max-width: 100%; background: #000; border-radius: 8px; margin-top: 20px; }
+        .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
     </style>
 </head>
 <body>
@@ -39,93 +43,104 @@
         
         <main>
             <div class="requisitos">
-                <h3>¡Requisito Indispensable!</h3>
-                <p>Este sistema necesita <strong>Streamer.bot</strong> para funcionar. Streamer.bot es el "cerebro" que conecta el chat de Twitch/YouTube con este overlay. Sin él, no verás ningún mensaje.</p>
-                <a href="https://streamer.bot/" target="_blank">Descargar Streamer.bot aquí</a>
-                
+                <h3>¡Requisitos Indispensables!</h3>
+                <ol style="list-style-type: decimal; padding-left: 20px; margin-top: 10px;">
+                    <li>Tener <strong>Streamer.bot</strong> instalado y funcionando. <a href="https://streamer.bot/" target="_blank">Descárgalo aquí</a>.</li>
+                    <li>Subir los archivos <code>chat.html</code>, <code>panel.html</code> y <code>shared.js</code> a un servicio de hosting (como <strong>GitHub Pages</strong>).</li>
+                </ol>
             </div>
 
-            <h2>Guía de Instalación y Configuración</h2>
+            <!-- --- NUEVA SECCIÓN DE VIDEO --- -->
+            <div id="video-section">
+                <h2>Video Tutorial</h2>
+                <div class="video-container">
+                    <iframe id="youtube-video" width="560" height="315" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+            </div>
             
+            <h2>Guía de Instalación en OBS</h2>
             <ol class="steps">
                 <li>
                     <h3>Configurar Streamer.bot</h3>
-                    <p>Este paso es obligatorio para cualquier método. Debes activar el servidor WebSocket para que el overlay pueda "escuchar" los mensajes.</p>
+                    <p>Este paso es obligatorio. Activa el servidor WebSocket para que el overlay pueda "escuchar" los mensajes del chat.</p>
                     <ul>
-                        <li>Abre Streamer.bot y ve a <code>Servers/Clients</code> → <code>WebSocket Server</code>.</li>
+                        <li>Abre Streamer.bot y ve a <code>Servers/Clients</code> &rarr; <code>WebSocket Server</code>.</li>
                         <li>Configuración requerida: <code>Host: 127.0.0.1</code>, <code>Port: 8080</code>, <code>Endpoint: /</code></li>
                         <li>Haz clic en <strong>Start Server</strong>. Debe ponerse en verde.</li>
                     </ul>
                 </li>
+                <li>
+                    <h3>Añadir el Overlay de Chat</h3>
+                    <p>Esto es lo que tu audiencia verá en el stream. Copia la siguiente URL y pégala en una nueva fuente de Navegador en OBS.</p>
+                    <div class="url-box">
+                        <input type="text" id="chat-url" readonly>
+                        <button onclick="copyToClipboard('chat-url')">Copiar URL</button>
+                    </div>
+                    <ul>
+                        <li>En OBS, añade una nueva fuente de <strong>Navegador</strong> y desmarca "Archivo local".</li>
+                        <li>Pega la URL copiada.</li>
+                        <li>Establece el <code>Ancho: 1920</code> y el <code>Alto: 1080</code>.</li>
+                    </ul>
+                </li>
+                <li>
+                    <h3>Añadir el Panel de Control</h3>
+                    <p>Este panel es solo para ti y no será visible para la audiencia. Cópialo y añádelo a los Paneles de OBS.</p>
+                     <div class="url-box">
+                        <input type="text" id="panel-url" readonly>
+                        <button onclick="copyToClipboard('panel-url')">Copiar URL</button>
+                    </div>
+                    <ul>
+                        <li>En OBS, ve a <code>Paneles</code> &rarr; <code>Paneles de navegador personalizados</code>.</li>
+                        <li>Dale un nombre (ej. "Panel del Chat") y pega la URL copiada.</li>
+                        <li>Haz clic en <strong>Aplicar</strong>. Ahora puedes arrastrar y acoplar tu panel de control donde quieras.</li>
+                    </ul>
+                </li>
             </ol>
-            
-            <hr style="border-color: #40444b; margin: 40px 0;">
-
-            <h3>Elige tu Método de Instalación</h3>
-
-            <div class="method-box">
-                <h3>Método 1: Fácil y Rápido (Uso Local)</h3>
-                <p>Usa un solo archivo que contiene el chat y el panel. Ideal para una configuración rápida sin necesidad de hosting.</p>
-                <a href="https://github.com/Beginning0/utility_streamer/releases" target="_blank">Descargar versión reciente aquí</a>
-
-                <ol class="steps">
-                    <li>
-                        <h4>Añadir a OBS</h4>
-                        <ul>
-                            <li>En OBS, añade una nueva fuente de tipo <code>Navegador</code> (Browser).</li>
-                            <li>Marca <strong>"Archivo local"</strong> y selecciona el archivo <a href="chat.html" target="_blank">chat.html</a>. (Nota: para este método, el archivo chat.html debe contener tanto el chat como el panel).</li>
-                            <li>Establece el <code>Ancho</code> a <code>1920</code> y el <code>Alto</code> a <code>1080</code>.</li>
-                        </ul>
-                    </li>
-                    <li>
-                        <h4>Recortar la Vista</h4>
-                        <ul>
-                             <li><strong>Este es el paso clave:</strong> Para que tu audiencia solo vea el chat, mantén pulsada la tecla <span class="obs-key">Alt</span> y arrastra el borde derecho de la fuente en OBS hacia la izquierda hasta que el panel de control quede completamente oculto.</li>
-                        </ul>
-                    </li>
-                    <li>
-                        <h4>Abrir el Panel de Control</h4>
-                        <ul>
-                             <li>Para controlar el sistema, simplemente abre el mismo archivo <a href="chat.html" target="_blank">chat.html</a> en tu navegador web (Chrome, Firefox, etc.).</li>
-                        </ul>
-                    </li>
-                </ol>
-            </div>
-
-            <div class="method-box">
-                <h3>Método 2: Profesional con Paneles (Requiere Hosting)</h3>
-                <p>Usa dos archivos separados para una integración más limpia en OBS. Requiere subir los archivos a un servicio como GitHub Pages.</p>
-                <ol class="steps">
-                    <li>
-                        <h4>Añadir Overlay de Chat a OBS</h4>
-                        <ul>
-                             <li>Añade una fuente de <code>Navegador</code> en OBS.</li>
-                             <li>En <strong>URL</strong>, pega el enlace a tu archivo <a href="chat.html" target="_blank">chat.html</a> alojado online.</li>
-                             <li>Establece <code>Ancho: 1920</code> y <code>Alto: 1080</code>.</li>
-                        </ul>
-                    </li>
-                    <li>
-                        <h4>Añadir Panel de Control a OBS</h4>
-                        <ul>
-                            <li>En OBS, ve al menú <code>Paneles</code> → <code>Paneles de navegador personalizados</code>.</li>
-                            <li>Dale un nombre (ej. "Panel del Chat") y en la URL, pega el enlace a tu archivo <a href="panel.html" target="_blank">panel.html</a> alojado online.</li>
-                            <li>Haz clic en <strong>Aplicar</strong>. Ahora puedes acoplar tu panel de control donde quieras dentro de OBS.</li>
-                        </ul>
-                    </li>
-                </ol>
-            </div>
 
             <div class="futura-herramienta">
                 <h3>🚀 ¡Más herramientas en camino!</h3>
-                <p>Estamos trabajando para añadir nuevas utilidades que mejoren aún más tus directos. Algunas ideas en desarrollo son:</p>
-                <ul>
-                    <li>Ideas sobran solo falta que funcionen</li>
-                </ul>
+                <p>Estamos trabajando para añadir nuevas utilidades que mejoren aún más tus directos. ¡Las ideas sobran, solo falta que funcionen!</p>
             </div>
-            
         </main>
-    </div>S
+    </div>
+
+    <script>
+        // --- CONFIGURACIÓN ---
+        // Pega aquí la URL de tu video. Si la dejas vacía, la sección de video se ocultará.
+        const youtubeVideoUrl = ""; // Ejemplo: "https://www.youtube.com/embed/TU_ID_DE_TU_VIDEO"
+
+        // --- LÓGICA DE LA PÁGINA ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const chatUrlInput = document.getElementById('chat-url');
+            const panelUrlInput = document.getElementById('panel-url');
+            
+            // Obtiene la ruta base de la página actual y la usa para construir las URLs completas
+            const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+            chatUrlInput.value = baseUrl + 'chat.html';
+            panelUrlInput.value = baseUrl + 'panel.html';
+
+            // Lógica para mostrar u ocultar el video
+            const videoSection = document.getElementById('video-section');
+            if (youtubeVideoUrl && youtubeVideoUrl.trim() !== "") {
+                document.getElementById('youtube-video').src = youtubeVideoUrl;
+                videoSection.style.display = 'block';
+            } else {
+                videoSection.style.display = 'none';
+            }
+        });
+
+        function copyToClipboard(elementId) {
+            const input = document.getElementById(elementId);
+            input.select();
+            document.execCommand('copy');
+            
+            const button = input.nextElementSibling;
+            const originalText = button.textContent;
+            button.textContent = '¡Copiado!';
+            setTimeout(() => {
+                button.textContent = originalText;
+            }, 1500);
+        }
+    </script>
 </body>
 </html>
-
-
