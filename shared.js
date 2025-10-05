@@ -1,75 +1,83 @@
-// =================================================================
-// ARCHIVO: shared.js
-// Lógica y datos compartidos - VERSIÓN FINAL
-// =================================================================
+// shared.js - Lógica y datos compartidos entre el chat y el panel
 
+// --- CONSTANTES DE CONFIGURACIÓN ---
 const POINTS_PER_MESSAGE = 1;
-let pointsPerGiftedMembership = 500;
-let tickerSpeed = 80; // Velocidad por defecto del banner
-
-let RANKS = [
-    { name: 'Novato', points: 0 }, { name: 'RC1', points: 50 }, { name: 'RC2', points: 150 },
+const RANKS = [
+    { name: 'Novato', points: 0 }, { name: 'RC1', points: 10 }, { name: 'RC2', points: 150 },
     { name: 'RC3', points: 300 }, { name: 'RC4', points: 500 }, { name: 'RC5', points: 750 },
     { name: 'RC6', points: 1000 }, { name: 'RC7', points: 1500 }, { name: 'G1', points: 2500 },
     { name: 'G2', points: 4000 }, { name: 'G3', points: 6000 }
-];
+].sort((a, b) => b.points - a.points);
 
-let usersData = {}, manualVoiceUsers = new Set(), ttsBlockedUsers = new Set();
-let selectedVoice = '', voices = [], volume = 30, voiceEnabled = false, rankForVoice = 'RC7';
-let chatDisplayMode = 'normal', bannerPosition = 'bottom';
+// --- VARIABLES GLOBALES DE ESTADO ---
+let usersData = {};
+let manualVoiceUsers = new Set();
+let ttsBlockedUsers = new Set();
+let selectedVoice = '';
+let voices = [];
+let volume = 30;
+let voiceEnabled = false;
+let rankForVoice = 'RC7';
 
+// --- COMUNICACIÓN ENTRE PESTAÑAS ---
 const channel = new BroadcastChannel('utility_streamer_state');
 
+// --- FUNCIONES DE GESTIÓN DE ESTADO (localStorage) ---
 function saveState() {
-    try {
-        const state = {
-            usersData, manualVoiceUsers: Array.from(manualVoiceUsers), ttsBlockedUsers: Array.from(ttsBlockedUsers),
-            selectedVoice, volume, voiceEnabled, rankForVoice, ranks: RANKS,
-            chatDisplayMode, bannerPosition, pointsPerGiftedMembership,
-            tickerSpeed
-        };
-        localStorage.setItem('utilityStreamerState', JSON.stringify(state));
-        channel.postMessage({ type: 'STATE_UPDATED' });
-    } catch (error) { console.error("Error al guardar el estado:", error); }
+    localStorage.setItem('usersData', JSON.stringify(usersData));
+    localStorage.setItem('manualVoiceUsers', JSON.stringify([...manualVoiceUsers]));
+    localStorage.setItem('ttsBlockedUsers', JSON.stringify([...ttsBlockedUsers]));
+    localStorage.setItem('selectedVoice', selectedVoice);
+    localStorage.setItem('volume', volume);
+    localStorage.setItem('voiceEnabled', voiceEnabled);
+    localStorage.setItem('rankForVoice', rankForVoice);
+    channel.postMessage({ type: 'STATE_UPDATED' });
 }
 
 function loadState() {
     try {
-        const savedState = localStorage.getItem('utilityStreamerState');
-        if (savedState) {
-            const state = JSON.parse(savedState);
-            usersData = state.usersData || {};
-            manualVoiceUsers = new Set(state.manualVoiceUsers || []);
-            ttsBlockedUsers = new Set(state.ttsBlockedUsers || []);
-            selectedVoice = state.selectedVoice || '';
-            volume = state.volume !== undefined ? state.volume : 30;
-            voiceEnabled = state.voiceEnabled || false;
-            rankForVoice = state.rankForVoice || 'RC7';
-            RANKS = state.ranks || RANKS;
-            chatDisplayMode = state.chatDisplayMode || 'normal';
-            bannerPosition = state.bannerPosition || 'bottom';
-            pointsPerGiftedMembership = state.pointsPerGiftedMembership !== undefined ? state.pointsPerGiftedMembership : 500;
-            tickerSpeed = state.tickerSpeed !== undefined ? state.tickerSpeed : 80;
-        }
-    } catch (e) { console.error("Error al cargar el estado:", e); usersData = {}; manualVoiceUsers = new Set(); ttsBlockedUsers = new Set(); }
+        usersData = JSON.parse(localStorage.getItem('usersData')) || {};
+        manualVoiceUsers = new Set(JSON.parse(localStorage.getItem('manualVoiceUsers')) || []);
+        ttsBlockedUsers = new Set(JSON.parse(localStorage.getItem('ttsBlockedUsers')) || []);
+        selectedVoice = localStorage.getItem('selectedVoice') || '';
+        volume = parseInt(localStorage.getItem('volume')) || 30;
+        voiceEnabled = localStorage.getItem('voiceEnabled') === 'true';
+        rankForVoice = localStorage.getItem('rankForVoice') || 'RC7';
+    } catch (e) {
+        console.error("Error al cargar el estado desde localStorage:", e);
+        usersData = {}; manualVoiceUsers = new Set(); ttsBlockedUsers = new Set();
+    }
 }
 
+// --- LÓGICA DE USUARIOS, PUNTOS Y RANGOS ---
 function getUserData(displayName, platform) {
-    const key = `${displayName.toLowerCase()}_${platform}`;
-    if (!usersData[key]) { usersData[key] = { displayName, platform, points: 0, rank: 'Novato' }; }
-    usersData[key].displayName = displayName;
-    if (!usersData[key].platform) { usersData[key].platform = platform; }
-    return usersData[key];
+    const lowerUser = displayName.toLowerCase();
+    if (!usersData[lowerUser]) {
+        // Si el usuario es nuevo, lo creamos con toda la información
+        usersData[lowerUser] = { points: 0, rank: 'Novato', displayName: displayName, platform: platform };
+    } else {
+        // --- CORRECCIÓN CLAVE ---
+        // Si el usuario ya existe, nos aseguramos de que su plataforma esté registrada.
+        // Esto corrige a los usuarios antiguos que no tenían este dato.
+        if (platform && !usersData[lowerUser].platform) {
+            usersData[lowerUser].platform = platform;
+        }
+        // Siempre actualizamos el displayName por si cambia mayúsculas/minúsculas
+        usersData[lowerUser].displayName = displayName;
+    }
+    return usersData[lowerUser];
 }
 
 function hasVoicePermission(displayName, platform) {
-    const userKey = `${displayName.toLowerCase()}_${platform}`;
-    if (ttsBlockedUsers.has(userKey)) return false;
-    if (manualVoiceUsers.has(userKey)) return true;
+    const lowerUser = displayName.toLowerCase();
+    if (ttsBlockedUsers.has(lowerUser)) return false;
+    if (manualVoiceUsers.has(lowerUser)) return true;
+    
     const userData = getUserData(displayName, platform);
-    const requiredRank = RANKS.find(r => r.name === rankForVoice);
-    if (!requiredRank) return false;
-    return userData.points >= requiredRank.points;
+    const userRankIndex = RANKS.findIndex(r => r.name === userData.rank);
+    const requiredRankIndex = RANKS.findIndex(r => r.name === rankForVoice); 
+    
+    if (userRankIndex === -1 || requiredRankIndex === -1) return false;
+    
+    return userRankIndex <= requiredRankIndex;
 }
-
-loadState();
