@@ -203,10 +203,9 @@
             }
         }
         
-        /* --- [CLAVE] ESTILOS QUE SE APLICAN SOLO CUANDO EL MODO BANNER ESTÁ ACTIVO --- */
         body.banner-mode #chat-column {
             position: fixed;
-            height: 80px; 
+            height: 80px;
             left: 0;
             right: 0;
         }
@@ -222,11 +221,11 @@
         }
 
         body.banner-mode #chat {
-            flex-direction: row; /* Pone los mensajes en fila en vez de columna */
+            flex-direction: row;
             justify-content: flex-start;
             width: 100%;
             height: 100%;
-            overflow: hidden; 
+            overflow: hidden;
         }
 
         #ticker-track {
@@ -236,16 +235,15 @@
             left: 0;
             top: 0;
             height: 100%;
-            will-change: transform; 
+            will-change: transform;
         }
 
         body.banner-mode .message {
-            animation: none; /* Desactivamos la animación de entrada individual */
-            flex-shrink: 0; 
-            margin: 0 15px; 
-            white-space: nowrap; /* Evita que el mensaje se parta en varias líneas */
+            animation: none;
+            flex-shrink: 0;
+            margin: 0 15px;
+            white-space: nowrap;
         }
-
     </style>
 </head>
 
@@ -259,94 +257,30 @@
     <script>
         const chatEl = document.getElementById('chat');
         let speechQueue = [];
-        
-        // --- [CLAVE] TODA LA LÓGICA PARA EL MOVIMIENTO DEL BANNER ---
         let tickerTrack = null, tickerPosition = 0, lastTimestamp = 0, animationFrameId = null;
 
-        function startTicker() {
-            if (animationFrameId) return; 
-            lastTimestamp = performance.now();
-            animationFrameId = requestAnimationFrame(updateTicker);
-        }
-
-        function stopTicker() {
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
-                animationFrameId = null;
-            }
-        }
+        function startTicker() { if (animationFrameId) return; lastTimestamp = performance.now(); animationFrameId = requestAnimationFrame(updateTicker); }
+        function stopTicker() { if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; } }
 
         function updateTicker(timestamp) {
             if (!tickerTrack) return;
-            const deltaTime = (timestamp - lastTimestamp) / 1000; 
+            const deltaTime = (timestamp - lastTimestamp) / 1000;
             lastTimestamp = timestamp;
-            
             tickerPosition -= tickerSpeed * deltaTime;
             tickerTrack.style.transform = `translateX(${tickerPosition}px)`;
-            
-            if (tickerTrack.children.length > 0) {
-                const firstMessage = tickerTrack.children[0];
-                const messageRect = firstMessage.getBoundingClientRect();
-                if (messageRect.right < 0) { 
-                    tickerPosition += messageRect.width + parseInt(getComputedStyle(firstMessage).marginRight) * 2; 
-                    firstMessage.remove(); 
-                }
-            }
-
-            if (tickerTrack.children.length === 0) {
-                stopTicker();
-                tickerPosition = 0; 
-            } else {
-                animationFrameId = requestAnimationFrame(updateTicker); 
-            }
-        }
-        
-        function setupBannerMode() {
-            chatEl.innerHTML = ''; 
-            tickerTrack = document.createElement('div');
-            tickerTrack.id = 'ticker-track';
-            chatEl.appendChild(tickerTrack);
-            tickerPosition = window.innerWidth; 
-            tickerTrack.style.transform = `translateX(${tickerPosition}px)`;
+            if (tickerTrack.children.length > 0) { const firstMessage = tickerTrack.children[0]; const messageRect = firstMessage.getBoundingClientRect(); if (messageRect.right < 0) { tickerPosition += messageRect.width + parseInt(getComputedStyle(firstMessage).marginRight) * 2; firstMessage.remove(); } }
+            if (tickerTrack.children.length === 0) { stopTicker(); tickerPosition = 0; } else { animationFrameId = requestAnimationFrame(updateTicker); }
         }
 
-        function teardownBannerMode() {
-            stopTicker();
-            chatEl.innerHTML = '';
-            tickerTrack = null;
-            tickerPosition = 0;
-        }
+        function setupBannerMode() { chatEl.innerHTML = ''; tickerTrack = document.createElement('div'); tickerTrack.id = 'ticker-track'; chatEl.appendChild(tickerTrack); tickerPosition = window.innerWidth; tickerTrack.style.transform = `translateX(${tickerPosition}px)`; }
+        function teardownBannerMode() { stopTicker(); chatEl.innerHTML = ''; tickerTrack = null; tickerPosition = 0; }
 
-        // --- [CLAVE] ESTA FUNCIÓN APLICA LOS CAMBIOS VISUALES AL CARGAR O CAMBIAR DE MODO ---
-        function setDisplayMode() {
-            document.body.classList.remove('banner-mode', 'banner-top', 'banner-bottom');
-            if (chatDisplayMode === 'banner') {
-                document.body.classList.add('banner-mode');
-                if (bannerPosition === 'top') {
-                    document.body.classList.add('banner-top');
-                } else {
-                    document.body.classList.add('banner-bottom');
-                }
-                setupBannerMode();
-            } else {
-                teardownBannerMode();
-            }
-        }
+        function setDisplayMode() { document.body.classList.remove('banner-mode', 'banner-top', 'banner-bottom'); if (chatDisplayMode === 'banner') { document.body.classList.add('banner-mode'); if (bannerPosition === 'top') document.body.classList.add('banner-top'); else document.body.classList.add('banner-bottom'); setupBannerMode(); } else { teardownBannerMode(); } }
 
         function addMessage(platform, displayName, message, badges, emotes, color, profileImageUrl, isMember) {
             const urlPattern = /https?:\/\/[^\s]+/; if (urlPattern.test(message)) return;
             const messageDiv = document.createElement('div'); messageDiv.className = 'message'; const badgeContainer = document.createElement('div'); badgeContainer.className = 'badge-container'; const platformIcon = document.createElement('img'); platformIcon.className = 'platform-icon'; platformIcon.src = platform === 'YouTube' ? 'https://cdn-icons-png.flaticon.com/512/1383/1383260.png' : 'https://cdn-icons-png.flaticon.com/512/15789/15789312.png'; badgeContainer.appendChild(platformIcon); const userData = getUserData(displayName, platform); if (platform !== 'Sistema' && (userData.rank.startsWith('G'))) { const crownIcon = document.createElement('span'); crownIcon.className = 'crown-icon'; badgeContainer.appendChild(crownIcon); } if (hasVoicePermission(displayName, platform)) { const voiceIcon = document.createElement('span'); voiceIcon.className = 'voice-enabled-icon'; badgeContainer.appendChild(voiceIcon); } const usernameSpan = document.createElement('span'); usernameSpan.className = 'username'; if (isMember) { const memberIcon = document.createElement('span'); memberIcon.className = 'member-icon'; memberIcon.textContent = '❤️'; usernameSpan.appendChild(memberIcon); } const nameText = document.createTextNode(displayName); usernameSpan.appendChild(nameText); usernameSpan.style.backgroundColor = color; if (platform !== 'Sistema') { const rankBadge = document.createElement('span'); let rankType = 'Novato'; if (userData.rank.startsWith('RC')) rankType = 'RC'; else if (userData.rank.startsWith('G')) rankType = 'G'; rankBadge.className = `rank-badge rank-${rankType}`; rankBadge.textContent = userData.rank; usernameSpan.appendChild(rankBadge); } const messageContentDiv = document.createElement('div'); messageContentDiv.className = 'message-content'; const processTwitchMessage = (text, msgEmotes) => { let formattedMessage = text; if (msgEmotes) { msgEmotes.forEach(emote => { const emoteTag = `<img src="${emote.imageUrl}" class="emote">`; const emoteRegex = new RegExp(`\\b${emote.name}\\b`, 'g'); formattedMessage = formattedMessage.replace(emoteRegex, emoteTag); }); } return formattedMessage; }; const messageText = document.createElement('div'); messageText.className = 'message-text'; messageText.innerHTML = (platform === 'Twitch') ? processTwitchMessage(message, emotes) : message; messageContentDiv.appendChild(usernameSpan); messageContentDiv.appendChild(messageText); messageDiv.appendChild(badgeContainer); messageDiv.appendChild(messageContentDiv);
-            
-            // --- [CLAVE] AQUÍ DECIDIMOS DÓNDE PONER EL MENSAJE SEGÚN EL MODO ---
-            if (chatDisplayMode === 'banner') {
-                if (!tickerTrack) setupBannerMode();
-                tickerTrack.appendChild(messageDiv);
-                startTicker(); 
-            } else { // Modo normal
-                chatEl.appendChild(messageDiv);
-                if (chatEl.children.length > 30) chatEl.removeChild(chatEl.firstChild);
-                setTimeout(() => { if (messageDiv.parentNode) messageDiv.remove(); }, 25000);
-            }
+            if (chatDisplayMode === 'banner') { if (!tickerTrack) setupBannerMode(); if (tickerTrack.children.length > 0) { const lastMessage = tickerTrack.lastElementChild; const lastMessageRect = lastMessage.getBoundingClientRect(); if (lastMessageRect.right < window.innerWidth) { const gap = window.innerWidth - lastMessageRect.right; messageDiv.style.marginLeft = `${Math.max(15, gap)}px`; } } tickerTrack.appendChild(messageDiv); startTicker(); } else { chatEl.appendChild(messageDiv); if (chatEl.children.length > 30) chatEl.removeChild(chatEl.firstChild); setTimeout(() => { if (messageDiv.parentNode) messageDiv.remove(); }, 25000); }
         }
 
         function updateRankForChat(displayName, platform) { const userData = getUserData(displayName, platform); const sortedRanks = [...RANKS].sort((a, b) => b.points - a.points); const newRank = sortedRanks.find(r => userData.points >= r.points); if (newRank && userData.rank !== newRank.name) { const oldRank = userData.rank; userData.rank = newRank.name; addMessage('Sistema', 'Bot', `${userData.displayName} ha ascendido de ${oldRank} a ${newRank.name}!`, [], [], '#7289da', '', false); if (newRank.name.startsWith('RC') || newRank.name.startsWith('G')) { showRankUpAnimation(userData.displayName, newRank.name); } } }
@@ -357,30 +291,62 @@
         function processCommand(platform, displayName, message, isOwner) { const [command, ...args] = message.split(' '); const input = args.join(' ').trim(); const lowerInput = input.toLowerCase(); if (command.toLowerCase() === '!rank' || command.toLowerCase() === '!puntos') { const userToCheck = input || displayName; const userData = getUserData(userToCheck, platform); const reply = `${userData.displayName}, es ${userData.rank} con ${userData.points} puntos.`; addMessage('Sistema', 'Bot', reply, [], [], '#7289da', '', false); return; } if (!isOwner) return; switch (command.toLowerCase()) { case '!agregar': if (lowerInput) { manualVoiceUsers.add(lowerInput); addMessage('Sistema', 'Bot', `Permiso de voz manual para "${input}".`, [], [], '#43b581', '', false); } break; case '!eliminar': if (lowerInput) { manualVoiceUsers.delete(lowerInput); addMessage('Sistema', 'Bot', `Permiso de voz manual quitado para "${input}".`, [], [], '#f04747', '', false); } break; case '!setpuntos': const [userToSet, pointsStr] = args; const points = parseInt(pointsStr); if (userToSet && !isNaN(points)) { const userData = getUserData(userToSet, platform); userData.points = points; updateRankForChat(userData.displayName, platform); addMessage('Sistema', 'Bot', `Puntos de ${userData.displayName} establecidos a ${points}.`, [], [], '#7289da', '', false); } break; default: return; } saveState(); }
         
         document.addEventListener('DOMContentLoaded', () => {
-            loadState(); 
-            setDisplayMode(); // <-- Aplica el modo guardado al cargar la página
-            
-            channel.onmessage = (event) => { 
-                if (event.data && event.data.type === 'STATE_UPDATED') { 
-                    const oldDisplayMode = chatDisplayMode; 
-                    loadState(); 
-                    if (oldDisplayMode !== chatDisplayMode) {
-                        setDisplayMode(); // <-- Vuelve a aplicar si el modo cambió desde el panel
-                    }
-                } 
-            };
-            
+            loadState(); setDisplayMode();
+            channel.onmessage = (event) => { if (event.data && event.data.type === 'STATE_UPDATED') { const oldDisplayMode = chatDisplayMode; const oldVoiceEnabled = voiceEnabled; loadState(); if (oldDisplayMode !== chatDisplayMode) setDisplayMode(); if (oldVoiceEnabled && !voiceEnabled) { speechQueue = []; speechSynthesis.cancel(); } } };
             const client = new StreamerbotClient({ 
                 host: '127.0.0.1', port: 8080, endpoint: '/', 
                 subscribe: { 'YouTube': ['Message', 'MembershipGift'], 'Twitch': ['ChatMessage'] }, 
                 onData: (data) => { 
+                    // Para depuración: Puedes descomentar la siguiente línea para ver en la consola (F12) los datos crudos que llegan.
+                    // console.log(JSON.stringify(data, null, 2));
                     let source; 
                     try { 
-                        if (data.event.source === 'Twitch' && data.event.type === 'ChatMessage') { source = 'Twitch'; const { displayName, message, badges, emotes, color, isBroadcaster } = data.data.message; const isOwner = isBroadcaster; if (!displayName || !message) return; if (message.startsWith('!')) { processCommand(source, displayName, message, isOwner); } else { addPointsForChat(displayName, source); const isSub = badges.some(b => b.name === 'subscriber'); addMessage(source, displayName, message, badges, emotes, color, data.data.message.profileImageUrl, isSub); if (hasVoicePermission(displayName, source)) speakMessage(`${displayName}: ${message}`); } 
-                        } else if (data.event.source === 'YouTube' && data.event.type === 'Message') { source = 'YouTube'; const { displayName, message, color, isOwner } = data.data; if (!displayName || !message) return; const isMember = data.data.user.badges.some(b => b.name === 'member'); if (message.startsWith('!')) { processCommand(source, displayName, message, isOwner); } else { addPointsForChat(displayName, source); addMessage(source, displayName, message, [], [], color, data.data.user.profileImageUrl, isMember); if (hasVoicePermission(displayName, source)) speakMessage(`${displayName}: ${message}`); } 
-                        } else if (data.event.source === 'YouTube' && data.event.type === 'MembershipGift') { source = 'YouTube'; const gifterName = data.data.user.name; addMessage('Sistema', 'Bot', `${gifterName} ha regalado membresías y gana ${pointsPerGiftedMembership} puntos RC!`, [], [], '#20c25b', '', false); const gifterData = getUserData(gifterName, source); gifterData.points += pointsPerGiftedMembership; updateRankForChat(gifterName, source); } 
-                    } catch (e) { console.error("Error procesando evento:", e, data); } 
-                    clearTimeout(window.saveTimeout); window.saveTimeout = setTimeout(() => saveState(), 2000); 
+                        if (data.event.source === 'Twitch' && data.event.type === 'ChatMessage') { 
+                            source = 'Twitch'; 
+                            const { displayName, message, badges, emotes, color, isBroadcaster } = data.data.message;
+                            const isOwner = isBroadcaster;
+                            if (!displayName || !message) return; 
+                            if (message.startsWith('!')) { 
+                                processCommand(source, displayName, message, isOwner); 
+                            } else { 
+                                addPointsForChat(displayName, source); 
+                                const isSub = badges.some(b => b.name === 'subscriber'); 
+                                addMessage(source, displayName, message, badges, emotes, color, data.data.message.profileImageUrl, isSub); 
+                                if (hasVoicePermission(displayName, source)) speakMessage(`${displayName}: ${message}`); 
+                            } 
+                        } else if (data.event.source === 'YouTube' && data.event.type === 'Message') { 
+                            source = 'YouTube'; 
+                            const { displayName, message, color, isOwner } = data.data; 
+                            if (!displayName || !message) return;
+
+                            // --- [INICIO DE LA CORRECCIÓN] ---
+                            // Hacemos una comprobación segura. Si 'data.data.user' o 'data.data.user.badges' no existen, 'isMember' será 'false'.
+                            const isMember = data.data.user && data.data.user.badges ? data.data.user.badges.some(b => b.name === 'member') : false;
+                            // Hacemos lo mismo para la URL de la imagen de perfil.
+                            const profileImageUrl = data.data.user ? data.data.user.profileImageUrl : ''; 
+                            // --- [FIN DE LA CORRECCIÓN] ---
+
+                            if (message.startsWith('!')) { 
+                                processCommand(source, displayName, message, isOwner); 
+                            } else { 
+                                addPointsForChat(displayName, source); 
+                                // Pasamos las variables seguras a la función 'addMessage'.
+                                addMessage(source, displayName, message, [], [], color, profileImageUrl, isMember); 
+                                if (hasVoicePermission(displayName, source)) speakMessage(`${displayName}: ${message}`); 
+                            } 
+                        } else if (data.event.source === 'YouTube' && data.event.type === 'MembershipGift') { 
+                            source = 'YouTube'; 
+                            const gifterName = data.data.user.name; 
+                            addMessage('Sistema', 'Bot', `${gifterName} ha regalado membresías y gana ${pointsPerGiftedMembership} puntos RC!`, [], [], '#20c25b', '', false); 
+                            const gifterData = getUserData(gifterName, source); 
+                            gifterData.points += pointsPerGiftedMembership; 
+                            updateRankForChat(gifterName, source); 
+                        } 
+                    } catch (e) { 
+                        console.error("Error procesando evento:", e, data); 
+                    } 
+                    clearTimeout(window.saveTimeout); 
+                    window.saveTimeout = setTimeout(() => saveState(), 2000); 
                 } 
             }); 
             client.connect();
