@@ -209,7 +209,6 @@
                 Voz</label><select id="rank-select"></select>
         </div>
     </div>
-    <!-- [CLAVE] ESTA ES LA SECCIÓN PARA CAMBIAR DE MODO -->
     <div class="accordion active">
         <div class="accordion-header">
             <h3>Apariencia del Chat</h3><span class="accordion-icon">-</span>
@@ -316,7 +315,6 @@
             rankSelect.addEventListener('change', () => { rankForVoice = rankSelect.value; saveState(); });
             giftPointsInput.addEventListener('change', () => { const points = parseInt(giftPointsInput.value); if (!isNaN(points) && points >= 0) { pointsPerGiftedMembership = points; saveState(); } });
             
-            // [CLAVE] ESTE EVENTO GUARDA EL MODO SELECCIONADO Y AVISA AL CHAT
             displayModeSelect.addEventListener('change', () => { 
                 chatDisplayMode = displayModeSelect.value; 
                 toggleBannerControls(); 
