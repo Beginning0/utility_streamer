@@ -1,6 +1,6 @@
 // =================================================================
 // ARCHIVO: shared.js
-// Lógica y datos compartidos - VERSIÓN FINAL
+// Lógica y datos compartidos - VERSIÓN FINAL CORREGIDA
 // =================================================================
 
 const POINTS_PER_MESSAGE = 1;
@@ -16,10 +16,7 @@ let RANKS = [
 
 let usersData = {}, manualVoiceUsers = new Set(), ttsBlockedUsers = new Set();
 let selectedVoice = '', voices = [], volume = 30, voiceEnabled = false, rankForVoice = 'RC7';
-
-// [CLAVE] VARIABLES QUE CONTROLAN EL MODO DE VISUALIZACIÓN
-let chatDisplayMode = 'normal'; // Valor por defecto
-let bannerPosition = 'bottom'; // Valor por defecto
+let chatDisplayMode = 'normal', bannerPosition = 'bottom';
 
 const channel = new BroadcastChannel('utility_streamer_state');
 
@@ -28,18 +25,17 @@ function saveState() {
         const state = {
             usersData, manualVoiceUsers: Array.from(manualVoiceUsers), ttsBlockedUsers: Array.from(ttsBlockedUsers),
             selectedVoice, volume, voiceEnabled, rankForVoice, ranks: RANKS,
-            // Guardamos las nuevas opciones en la memoria del navegador
             chatDisplayMode, bannerPosition, pointsPerGiftedMembership,
             tickerSpeed
         };
         localStorage.setItem('utilityStreamerState', JSON.stringify(state));
-        channel.postMessage({ type: 'STATE_UPDATED' }); // Avisa a las otras ventanas (al chat) del cambio
+        channel.postMessage({ type: 'STATE_UPDATED' });
     } catch (error) { console.error("Error al guardar el estado:", error); }
 }
 
 function loadState() {
+    const savedState = localStorage.getItem('utilityStreamerState');
     try {
-        const savedState = localStorage.getItem('utilityStreamerState');
         if (savedState) {
             const state = JSON.parse(savedState);
             usersData = state.usersData || {};
@@ -50,20 +46,36 @@ function loadState() {
             voiceEnabled = state.voiceEnabled || false;
             rankForVoice = state.rankForVoice || 'RC7';
             RANKS = state.ranks || RANKS;
-            // Cargamos las opciones de visualización guardadas
             chatDisplayMode = state.chatDisplayMode || 'normal';
             bannerPosition = state.bannerPosition || 'bottom';
             pointsPerGiftedMembership = state.pointsPerGiftedMembership !== undefined ? state.pointsPerGiftedMembership : 500;
             tickerSpeed = state.tickerSpeed !== undefined ? state.tickerSpeed : 80;
         }
-    } catch (e) { console.error("Error al cargar el estado:", e); usersData = {}; manualVoiceUsers = new Set(); ttsBlockedUsers = new Set(); }
+    } catch (e) {
+        // --- [INICIO DE LA CORRECCIÓN] ---
+        // Si hay un error al leer los datos (porque son de una versión antigua),
+        // borramos los datos corruptos y empezamos de cero.
+        console.error("Error al cargar el estado. Probablemente datos de una versión anterior. Reiniciando estado.", e);
+        localStorage.removeItem('utilityStreamerState'); // Eliminamos los datos malos
+        usersData = {};
+        manualVoiceUsers = new Set();
+        ttsBlockedUsers = new Set();
+        // Guardamos un estado limpio para no volver a fallar
+        saveState();
+        // --- [FIN DE LA CORRECCIÓN] ---
+    }
 }
 
 function getUserData(displayName, platform) {
     const key = `${displayName.toLowerCase()}_${platform}`;
-    if (!usersData[key]) { usersData[key] = { displayName, platform, points: 0, rank: 'Novato' }; }
+    if (!usersData[key]) {
+        usersData[key] = { displayName, platform, points: 0, rank: 'Novato' };
+    }
+    // Aseguramos que el nombre de usuario siempre esté actualizado (por si cambian mayúsculas/minúsculas)
     usersData[key].displayName = displayName;
-    if (!usersData[key].platform) { usersData[key].platform = platform; }
+    if (!usersData[key].platform) {
+        usersData[key].platform = platform;
+    }
     return usersData[key];
 }
 
