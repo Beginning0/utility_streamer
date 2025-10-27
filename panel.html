@@ -1,199 +1,341 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Administración del Chat</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #2c2f33; color: #f0f0f0; margin: 0; padding: 20px; }
-        h2, h3 { color: #ffffff; margin-top: 0; }
-        
-        .accordion { background-color: #36393f; border-radius: 8px; margin-bottom: 20px; overflow: hidden; }
-        .accordion-header { display: flex; justify-content: space-between; align-items: center; padding: 15px; cursor: pointer; border-bottom: 1px solid #4f545c; }
-        .accordion-header h3 { margin: 0; border: none; padding: 0; }
-        .accordion-icon { font-size: 1.5em; font-weight: bold; transition: transform 0.3s ease; }
-        .accordion-content { max-height: 0; overflow-y: auto; padding: 0 15px; transition: max-height 0.3s ease-out, padding 0.3s ease-out; }
-        .accordion.active .accordion-content { max-height: 500px; padding: 15px; }
-        .accordion.active .accordion-icon { transform: rotate(45deg); }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #2c2f33;
+            color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
 
-        label { display: block; margin-bottom: 8px; font-weight: bold; }
-        input[type="text"], select { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #4f545c; background-color: #40444b; color: #f0f0f0; box-sizing: border-box; }
-        button { padding: 8px 12px; border-radius: 4px; border: none; color: white; cursor: pointer; font-weight: bold; }
-        button:hover { filter: brightness(1.1); }
+        h2,
+        h3 {
+            color: #ffffff;
+            margin-top: 0;
+        }
+
+        .accordion {
+            background-color: #36393f;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .accordion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #4f545c;
+        }
+
+        .accordion-header h3 {
+            margin: 0;
+        }
+
+        .accordion-icon {
+            font-size: 1.5em;
+            font-weight: bold;
+            transition: transform 0.3s ease;
+        }
+
+        .accordion-content {
+            max-height: 0;
+            overflow-y: auto;
+            padding: 0 15px;
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+        }
+
+        .accordion.active .accordion-content {
+            max-height: 600px;
+            padding: 15px;
+        }
+
+        .accordion.active .accordion-icon {
+            transform: rotate(45deg);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #4f545c;
+            background-color: #40444b;
+            color: #f0f0f0;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+
+        button {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #users-list .user-item {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 8px;
+            align-items: center;
+            background-color: #40444b;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+
+        .user-info {
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            overflow: hidden;
+        }
+
+        .user-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-stats {
+            font-size: 0.8em;
+            color: #b9bbbe;
+        }
+
+        .user-item .btn-voice-add {
+            background-color: #43b581;
+        }
+
+        .user-item .btn-voice-remove {
+            background-color: #f04747;
+        }
+
+        .user-item .btn-block {
+            background-color: #f04747;
+        }
+
+        .user-item .btn-unblock {
+            background-color: #7289da;
+        }
+
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .toggle-switch label {
+            margin-bottom: 0;
+        }
+
+        .platform-logo {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        .platform-twitch {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%239146FF" d="M11.571 4.714h1.715v5.143H11.57zm4.572 0H17.86v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0H6zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714v9.429z"/></svg>');
+        }
+
+        .platform-youtube {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%23FF0000" d="M21.582 7.234c-.23-.854-.888-1.512-1.742-1.742C18.258 5 12 5 12 5s-6.258 0-7.84.492c-.854.23-1.512.888-1.742 1.742C2 8.816 2 12 2 12s0 3.184.418 4.766c.23.854.888 1.512 1.742 1.742C5.742 19 12 19 12 19s6.258 0 7.84-.492c.854-.23 1.512.888 1.742-1.742C22 15.184 22 12 22 12s0-3.184-.418-4.766zM9.75 15.428V8.572L15.428 12 9.75 15.428z"/></svg>');
+        }
         
-        #users-list .user-item { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; background-color: #40444b; padding: 8px; border-radius: 4px; margin-bottom: 5px; }
-        .user-info { font-weight: bold; display: flex; align-items: center; gap: 8px; overflow: hidden; }
-        .user-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .user-stats { font-size: 0.8em; color: #b9bbbe; }
-        .user-item .btn-voice-add { background-color: #43b581; }
-        .user-item .btn-voice-remove { background-color: #f04747; }
-        .user-item .btn-block { background-color: #f04747; }
-        .user-item .btn-unblock { background-color: #7289da; }
-        .toggle-switch { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
-        .toggle-switch label { margin-bottom: 0; }
-        
-        .platform-logo { width: 16px; height: 16px; flex-shrink: 0; background-size: contain; background-repeat: no-repeat; background-position: center; }
-        .platform-twitch { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%239146FF" d="M11.571 4.714h1.715v5.143H11.57zm4.572 0H17.86v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0H6zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714v9.429z"/></svg>'); }
-        .platform-youtube { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%23FF0000" d="M21.582 7.234c-.23-.854-.888-1.512-1.742-1.742C18.258 5 12 5 12 5s-6.258 0-7.84.492c-.854.23-1.512.888-1.742 1.742C2 8.816 2 12 2 12s0 3.184.418 4.766c.23.854.888 1.512 1.742 1.742C5.742 19 12 19 12 19s6.258 0 7.84-.492c.854-.23 1.512.888 1.742-1.742C22 15.184 22 12 22 12s0-3.184-.418-4.766zM9.75 15.428V8.572L15.428 12 9.75 15.428z"/></svg>'); }
-        
-        .support-section { background-color: #2c2f33; }
-        .support-section p { color: #b9bbbe; font-size: 0.9em; }
-        .support-section ul { list-style: none; padding: 0; margin: 15px 0; }
-        .support-section li { margin-bottom: 12px; }
-        .support-section a { color: #f0f0f0; text-decoration: none; display: inline-flex; align-items: center; font-size: 1.1em; transition: color 0.2s ease-in-out; }
-        .support-section a:hover { color: #7289da; }
-        a[href*="twitch.tv"]::before { content: ''; display: inline-block; width: 20px; height: 20px; margin-right: 12px; background-size: contain; background-repeat: no-repeat; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%239146FF"><path d="M11.571 4.714h1.715v5.143H11.57zm4.572 0H17.86v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0H6zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714v9.429z"/></svg>'); }
-        a[href*="youtube.com"]::before { content: ''; display: inline-block; width: 20px; height: 20px; margin-right: 12px; background-size: contain; background-repeat: no-repeat; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23FF0000"><path d="M21.582 7.234c-.23-.854-.888-1.512-1.742-1.742C18.258 5 12 5 12 5s-6.258 0-7.84.492c-.854.23-1.512.888-1.742 1.742C2 8.816 2 12 2 12s0 3.184.418 4.766c.23.854.888 1.512 1.742 1.742C5.742 19 12 19 12 19s6.258 0 7.84-.492c.854-.23 1.512.888 1.742-1.742C22 15.184 22 12 22 12s0-3.184-.418-4.766zM9.75 15.428V8.572L15.428 12 9.75 15.428z"/></svg>'); }
+        .user-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .user-filters button {
+            background-color: #40444b;
+        }
+
+        .user-filters button.active {
+            background-color: #7289da;
+        }
+
+        .rank-editor-item {
+            display: grid;
+            grid-template-columns: 1fr 120px;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        #banner-position-container,
+        #banner-speed-container {
+            display: none;
+            margin-top: 15px;
+        }
     </style>
 </head>
+
 <body>
     <h2>Panel de Administración del Chat</h2>
-    
     <div class="accordion active">
         <div class="accordion-header">
-            <h3>Voz TTS</h3>
-            <span class="accordion-icon">-</span>
+            <h3>Voz TTS</h3><span class="accordion-icon">-</span>
         </div>
         <div class="accordion-content">
-            <div class="toggle-switch">
-                <label for="voice-toggle">Activar Voz</label>
-                <input type="checkbox" id="voice-toggle">
-            </div>
-            <label for="volume-slider">Volumen: <span id="volume-value">30%</span></label>
-            <input type="range" id="volume-slider" min="0" max="100" value="30">
-            <label for="voice-select" style="margin-top: 15px;">Seleccionar Voz</label>
-            <select id="voice-select"></select>
-            <label for="rank-select" style="margin-top: 15px;">Rango Mínimo para Voz</label>
-            <select id="rank-select"></select>
+            <div class="toggle-switch"><label for="voice-toggle">Activar Voz</label><input type="checkbox"
+                    id="voice-toggle"></div><label for="volume-slider">Volumen: <span
+                    id="volume-value">30%</span></label><input type="range" id="volume-slider" min="0" max="100"
+                value="30"><label for="voice-select" style="margin-top: 15px;">Seleccionar Voz</label><select
+                id="voice-select"></select><label for="rank-select" style="margin-top: 15px;">Rango Mínimo para
+                Voz</label><select id="rank-select"></select>
         </div>
     </div>
-    
+    <!-- [CLAVE] ESTA ES LA SECCIÓN PARA CAMBIAR DE MODO -->
     <div class="accordion active">
         <div class="accordion-header">
-            <h3>Gestión de Usuarios</h3>
-            <span class="accordion-icon">-</span>
+            <h3>Apariencia del Chat</h3><span class="accordion-icon">-</span>
         </div>
         <div class="accordion-content">
-            <!-- ### NUEVO CAMPO DE BÚSQUEDA ### -->
-            <input type="text" id="user-search" placeholder="🔍 Buscar usuario..." style="margin-bottom: 15px;">
+            <label for="display-mode-select">Modo de Visualización</label>
+            <select id="display-mode-select">
+                <option value="normal">Normal</option>
+                <option value="banner">Banner (Cinta transportadora)</option>
+            </select>
+            
+            <div id="banner-position-container">
+                <label for="banner-position-select">Posición del Banner</label>
+                <select id="banner-position-select">
+                    <option value="bottom">Abajo</option>
+                    <option value="top">Arriba</option>
+                </select>
+            </div>
+
+             <div id="banner-speed-container">
+                <label for="ticker-speed-slider">Velocidad del Banner: <span id="ticker-speed-value">80</span> px/s</label>
+                <input type="range" id="ticker-speed-slider" min="20" max="300" step="10" value="80">
+            </div>
+        </div>
+    </div>
+    <div class="accordion">
+        <div class="accordion-header">
+            <h3>Gestión de Usuarios</h3><span class="accordion-icon">+</span>
+        </div>
+        <div class="accordion-content"><input type="text" id="user-search" placeholder="🔍 Buscar usuario...">
+            <div class="user-filters"><button id="filter-all" class="active">Todos</button><button id="filter-voice">Voz
+                    Manual</button><button id="filter-blocked">Bloqueados</button></div>
             <div id="users-list"></div>
         </div>
     </div>
-
     <div class="accordion">
         <div class="accordion-header">
-            <h3>Apoyo al Creador</h3>
-            <span class="accordion-icon">+</span>
+            <h3>Gestión de Rangos</h3><span class="accordion-icon">+</span>
         </div>
-        <div class="accordion-content support-section">
-            <p>Si te gusta este proyecto y quieres ayudar a seguir desarrollándolo, puedes apoyar al creador original en sus redes sociales:</p>
-            <ul>
-                <li><a href="https://www.twitch.tv/shado_terro" target="_blank" rel="noopener noreferrer">shado_terro</a></li>
-                <li><a href="https://www.youtube.com/@ShadoTerroPlaying" target="_blank" rel="noopener noreferrer">ShadoTerro Playing</a></li>
-            </ul>
+        <div class="accordion-content" id="ranks-editor"></div>
+    </div>
+    <div class="accordion">
+        <div class="accordion-header">
+            <h3>Gestión de Eventos</h3><span class="accordion-icon">+</span>
         </div>
+        <div class="accordion-content"><label for="gift-points-input">Puntos por Regalar Membresía (YT)</label><input
+                type="number" id="gift-points-input"></div>
     </div>
 
     <script src="shared.js"></script>
     <script>
-        const voiceToggle = document.getElementById('voice-toggle');
-        const volumeSlider = document.getElementById('volume-slider');
-        const volumeValueSpan = document.getElementById('volume-value');
-        const voiceSelect = document.getElementById('voice-select');
-        const rankSelect = document.getElementById('rank-select');
-        const usersListDiv = document.getElementById('users-list');
-        const userSearchInput = document.getElementById('user-search'); // <-- NUEVA REFERENCIA
+        const voiceToggle = document.getElementById('voice-toggle'), volumeSlider = document.getElementById('volume-slider'), volumeValueSpan = document.getElementById('volume-value'), voiceSelect = document.getElementById('voice-select'), rankSelect = document.getElementById('rank-select'), usersListDiv = document.getElementById('users-list'), userSearchInput = document.getElementById('user-search'), ranksEditorDiv = document.getElementById('ranks-editor'), displayModeSelect = document.getElementById('display-mode-select'), bannerPositionContainer = document.getElementById('banner-position-container'), bannerPositionSelect = document.getElementById('banner-position-select'), giftPointsInput = document.getElementById('gift-points-input'), bannerSpeedContainer = document.getElementById('banner-speed-container'), tickerSpeedSlider = document.getElementById('ticker-speed-slider'), tickerSpeedValueSpan = document.getElementById('ticker-speed-value');
+        let currentUserFilter = 'all';
 
-        function renderUsersList(searchTerm = '') { // <-- MODIFICADO: Acepta un término de búsqueda
-            usersListDiv.innerHTML = '';
-            
-            let userEntries = Object.entries(usersData);
-
-            // Filtrar usuarios si hay un término de búsqueda
-            if (searchTerm.length > 0) {
-                userEntries = userEntries.filter(([username, data]) => 
-                    data.displayName.toLowerCase().includes(searchTerm)
-                );
-            }
-
-            const sortedUsers = userEntries.sort(([, a], [, b]) => b.points - a.points);
-            
-            sortedUsers.forEach(([username, data]) => {
-                const isManual = manualVoiceUsers.has(username);
-                const isBlocked = ttsBlockedUsers.has(username);
-                const platformClass = data.platform === 'YouTube' ? 'platform-youtube' : 'platform-twitch';
-                
-                const userItem = document.createElement('div');
-                userItem.className = 'user-item';
-                
-                const voiceButton = `<button data-user="${username}" data-action="toggle-voice" class="${isManual ? 'btn-voice-remove' : 'btn-voice-add'}">${isManual ? 'Quitar Voz' : 'Dar Voz'}</button>`;
-                const blockButton = `<button data-user="${username}" data-action="toggle-block" class="${isBlocked ? 'btn-unblock' : 'btn-block'}">${isBlocked ? 'Desbloquear' : 'Bloquear'}</button>`;
-
-                userItem.innerHTML = `
-                    <div class="user-info">
-                        <div class="platform-logo ${platformClass}" title="${data.platform || 'N/A'}"></div>
-                        <div>
-                           <span class="user-name" title="${data.displayName}">${data.displayName}</span>
-                           <div class="user-stats">${data.rank} - ${data.points} Pts</div>
-                        </div>
-                    </div>
-                    ${voiceButton}
-                    ${blockButton}
-                `;
-                usersListDiv.appendChild(userItem);
-            });
+        function toggleBannerControls() {
+            const isBanner = displayModeSelect.value === 'banner';
+            bannerPositionContainer.style.display = isBanner ? 'block' : 'none';
+            bannerSpeedContainer.style.display = isBanner ? 'block' : 'none';
         }
 
-        function populateRankSelect() { const reversedRanks = [...RANKS].reverse(); rankSelect.innerHTML = ''; reversedRanks.forEach(rank => { const option = document.createElement('option'); option.value = rank.name; option.textContent = rank.name; rankSelect.appendChild(option); }); }
+        function renderUsersList() { usersListDiv.innerHTML = ''; const searchTerm = userSearchInput.value.toLowerCase(); let userEntries = Object.entries(usersData); if (currentUserFilter === 'voice') userEntries = userEntries.filter(([key]) => manualVoiceUsers.has(key)); else if (currentUserFilter === 'blocked') userEntries = userEntries.filter(([key]) => ttsBlockedUsers.has(key)); if (searchTerm.length > 0) userEntries = userEntries.filter(([, data]) => data.displayName.toLowerCase().includes(searchTerm)); const sortedUsers = userEntries.sort(([, a], [, b]) => b.points - a.points); sortedUsers.forEach(([key, data]) => { const isManual = manualVoiceUsers.has(key); const isBlocked = ttsBlockedUsers.has(key); const platformClass = data.platform === 'YouTube' ? 'platform-youtube' : 'platform-twitch'; const userItem = document.createElement('div'); userItem.className = 'user-item'; const voiceButton = `<button data-user="${key}" data-action="toggle-voice" class="${isManual ? 'btn-voice-remove' : 'btn-voice-add'}">${isManual ? 'Quitar Voz' : 'Dar Voz'}</button>`; const blockButton = `<button data-user="${key}" data-action="toggle-block" class="${isBlocked ? 'btn-unblock' : 'btn-block'}">${isBlocked ? 'Desbloquear' : 'Bloquear'}</button>`; userItem.innerHTML = `<div class="user-info"><div class="platform-logo ${platformClass}" title="${data.platform || 'N/A'}"></div><div><span class="user-name" title="${data.displayName}">${data.displayName}</span><div class="user-stats">${data.rank} - ${data.points} Pts</div></div></div>${voiceButton}${blockButton}`; usersListDiv.appendChild(userItem); }); }
+        function renderRanksEditor() { ranksEditorDiv.innerHTML = ''; const sortedRanks = [...RANKS].sort((a, b) => a.points - b.points); sortedRanks.forEach((rank, index) => { if (rank.points === 0) return; const rankItem = document.createElement('div'); rankItem.className = 'rank-editor-item'; rankItem.innerHTML = `<label for="rank-points-${index}">${rank.name}</label><input type="number" id="rank-points-${index}" value="${rank.points}" data-rank-name="${rank.name}">`; ranksEditorDiv.appendChild(rankItem); }); }
+        function populateRankSelect() { const sortedRanks = [...RANKS].sort((a, b) => a.points - b.points); rankSelect.innerHTML = ''; sortedRanks.forEach(rank => { const option = document.createElement('option'); option.value = rank.name; option.textContent = rank.name; rankSelect.appendChild(option); }); }
         function populateVoiceSelect() { voices = speechSynthesis.getVoices(); if (voices.length === 0) return; const currentSelected = voiceSelect.value; voiceSelect.innerHTML = ''; voices.forEach(voice => { const option = document.createElement('option'); option.textContent = `${voice.name} (${voice.lang})`; option.value = voice.name; voiceSelect.appendChild(option); }); voiceSelect.value = currentSelected || selectedVoice; }
-        function updatePanelUI() { voiceToggle.checked = voiceEnabled; volumeSlider.value = volume; volumeValueSpan.textContent = `${volume}%`; if (selectedVoice) voiceSelect.value = selectedVoice; if (rankForVoice) rankSelect.value = rankForVoice; renderUsersList(userSearchInput.value.toLowerCase()); }
+        
+        function updatePanelUI() {
+            voiceToggle.checked = voiceEnabled;
+            volumeSlider.value = volume;
+            volumeValueSpan.textContent = `${volume}%`;
+            if (selectedVoice) voiceSelect.value = selectedVoice;
+            
+            displayModeSelect.value = chatDisplayMode;
+            bannerPositionSelect.value = bannerPosition;
+            giftPointsInput.value = pointsPerGiftedMembership;
+            tickerSpeedSlider.value = tickerSpeed;
+            tickerSpeedValueSpan.textContent = `${tickerSpeed} px/s`;
+            toggleBannerControls();
+            
+            populateRankSelect();
+            if (rankForVoice) rankSelect.value = rankForVoice;
+            renderUsersList();
+            renderRanksEditor();
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             loadState();
-            populateRankSelect();
             updatePanelUI();
             
+            if (speechSynthesis.onvoiceschanged !== undefined) { 
+                speechSynthesis.onvoiceschanged = populateVoiceSelect; 
+            }
             populateVoiceSelect();
-            if (speechSynthesis.onvoiceschanged !== undefined) { speechSynthesis.onvoiceschanged = populateVoiceSelect; }
-            
-            channel.onmessage = (event) => { if (event.data && event.data.type === 'STATE_UPDATED') { loadState(); updatePanelUI(); } };
 
-            // Event Listeners
+            channel.onmessage = (event) => { 
+                if (event.data && event.data.type === 'STATE_UPDATED') { 
+                    loadState(); 
+                    updatePanelUI(); 
+                } 
+            };
+            
             voiceToggle.addEventListener('change', () => { voiceEnabled = voiceToggle.checked; saveState(); });
-            volumeSlider.addEventListener('input', () => { volume = parseInt(volumeSlider.value); volumeValueSpan.textContent = `${volume}%`; });
-            volumeSlider.addEventListener('change', () => saveState());
+            volumeSlider.addEventListener('input', () => { volume = parseInt(volumeSlider.value); volumeValueSpan.textContent = `${volume}%`; saveState(); });
             voiceSelect.addEventListener('change', () => { selectedVoice = voiceSelect.value; saveState(); });
             rankSelect.addEventListener('change', () => { rankForVoice = rankSelect.value; saveState(); });
-
-            // --- NUEVO Event Listener para el buscador ---
-            userSearchInput.addEventListener('input', () => {
-                const searchTerm = userSearchInput.value.toLowerCase();
-                renderUsersList(searchTerm);
+            giftPointsInput.addEventListener('change', () => { const points = parseInt(giftPointsInput.value); if (!isNaN(points) && points >= 0) { pointsPerGiftedMembership = points; saveState(); } });
+            
+            // [CLAVE] ESTE EVENTO GUARDA EL MODO SELECCIONADO Y AVISA AL CHAT
+            displayModeSelect.addEventListener('change', () => { 
+                chatDisplayMode = displayModeSelect.value; 
+                toggleBannerControls(); 
+                saveState(); 
+            });
+            bannerPositionSelect.addEventListener('change', () => { bannerPosition = bannerPositionSelect.value; saveState(); });
+            tickerSpeedSlider.addEventListener('input', () => { 
+                tickerSpeed = parseInt(tickerSpeedSlider.value); 
+                tickerSpeedValueSpan.textContent = `${tickerSpeed} px/s`; 
+                saveState(); 
             });
 
-            usersListDiv.addEventListener('click', (e) => {
-                const button = e.target.closest('button');
-                if (!button) return;
-                
-                const user = button.dataset.user;
-                const action = button.dataset.action;
-
-                if (action === 'toggle-voice') { if (manualVoiceUsers.has(user)) { manualVoiceUsers.delete(user); } else { manualVoiceUsers.add(user); } } 
-                else if (action === 'toggle-block') { if (ttsBlockedUsers.has(user)) { ttsBlockedUsers.delete(user); } else { ttsBlockedUsers.add(user); } }
-                
-                saveState();
-                renderUsersList(userSearchInput.value.toLowerCase()); // Volver a renderizar con el filtro actual
-            });
-
-            document.querySelectorAll('.accordion-header').forEach(header => {
-                header.addEventListener('click', () => {
-                    const accordion = header.parentElement;
-                    const icon = header.querySelector('.accordion-icon');
-                    accordion.classList.toggle('active');
-                    if(accordion.classList.contains('active')) { icon.textContent = '-'; } else { icon.textContent = '+'; }
-                });
-            });
+            userSearchInput.addEventListener('input', renderUsersList);
+            document.querySelector('.user-filters').addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { document.querySelector('.user-filters button.active').classList.remove('active'); e.target.classList.add('active'); currentUserFilter = e.target.id.replace('filter-', ''); renderUsersList(); } });
+            usersListDiv.addEventListener('click', (e) => { const button = e.target.closest('button'); if (!button) return; const user = button.dataset.user; const action = button.dataset.action; if (action === 'toggle-voice') { if (manualVoiceUsers.has(user)) { manualVoiceUsers.delete(user); } else { manualVoiceUsers.add(user); } } else if (action === 'toggle-block') { if (ttsBlockedUsers.has(user)) { ttsBlockedUsers.delete(user); } else { ttsBlockedUsers.add(user); } } saveState(); renderUsersList(); });
+            ranksEditorDiv.addEventListener('change', (e) => { if (e.target.tagName === 'INPUT' && e.target.type === 'number') { const rankName = e.target.dataset.rankName; const newPoints = parseInt(e.target.value); const rankToUpdate = RANKS.find(r => r.name === rankName); if (rankToUpdate && !isNaN(newPoints)) { rankToUpdate.points = newPoints; saveState(); updatePanelUI(); } } });
+            document.querySelectorAll('.accordion-header').forEach(header => { header.addEventListener('click', () => { const accordion = header.parentElement; accordion.classList.toggle('active'); header.querySelector('.accordion-icon').textContent = accordion.classList.contains('active') ? '-' : '+'; }); });
         });
     </script>
 </body>
+
 </html>
