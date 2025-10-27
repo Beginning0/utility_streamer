@@ -297,8 +297,6 @@
                 host: '127.0.0.1', port: 8080, endpoint: '/', 
                 subscribe: { 'YouTube': ['Message', 'MembershipGift'], 'Twitch': ['ChatMessage'] }, 
                 onData: (data) => { 
-                    // Para depuración: Puedes descomentar la siguiente línea para ver en la consola (F12) los datos crudos que llegan.
-                    // console.log(JSON.stringify(data, null, 2));
                     let source; 
                     try { 
                         if (data.event.source === 'Twitch' && data.event.type === 'ChatMessage') { 
@@ -318,19 +316,12 @@
                             source = 'YouTube'; 
                             const { displayName, message, color, isOwner } = data.data; 
                             if (!displayName || !message) return;
-
-                            // --- [INICIO DE LA CORRECCIÓN] ---
-                            // Hacemos una comprobación segura. Si 'data.data.user' o 'data.data.user.badges' no existen, 'isMember' será 'false'.
                             const isMember = data.data.user && data.data.user.badges ? data.data.user.badges.some(b => b.name === 'member') : false;
-                            // Hacemos lo mismo para la URL de la imagen de perfil.
                             const profileImageUrl = data.data.user ? data.data.user.profileImageUrl : ''; 
-                            // --- [FIN DE LA CORRECCIÓN] ---
-
                             if (message.startsWith('!')) { 
                                 processCommand(source, displayName, message, isOwner); 
                             } else { 
                                 addPointsForChat(displayName, source); 
-                                // Pasamos las variables seguras a la función 'addMessage'.
                                 addMessage(source, displayName, message, [], [], color, profileImageUrl, isMember); 
                                 if (hasVoicePermission(displayName, source)) speakMessage(`${displayName}: ${message}`); 
                             } 
