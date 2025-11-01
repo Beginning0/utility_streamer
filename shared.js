@@ -3,7 +3,7 @@
 // --- CONSTANTES DE CONFIGURACIÓN ---
 const POINTS_PER_MESSAGE = 1;
 const RANKS = [
-    { name: 'Novato', points: 0 }, { name: 'RC1', points: 50 }, { name: 'RC2', points: 150 },
+    { name: 'Novato', points: 0 }, { name: 'RC1', points: 10 }, { name: 'RC2', points: 150 },
     { name: 'RC3', points: 300 }, { name: 'RC4', points: 500 }, { name: 'RC5', points: 750 },
     { name: 'RC6', points: 1000 }, { name: 'RC7', points: 1500 }, { name: 'G1', points: 2500 },
     { name: 'G2', points: 4000 }, { name: 'G3', points: 6000 }
