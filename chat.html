@@ -294,10 +294,16 @@
                 port: 8080, 
                 endpoint: '/', 
                 subscribe: { 
-                    'YouTube': ['Message'], 
-                    'Twitch': ['ChatMessage'] 
+                    'YouTube': ['Message', 'SuperChat', 'SuperSticker', 'MembershipGift', 'NewSponsor'],
+                    'Twitch': ['ChatMessage', 'Cheer', 'GiftBomb', 'GiftSub', 'ReSub', 'Sub', 'Follow', 'Raid']
                 }, 
-                onData: (data) => { 
+                onData: (data) => {
+                    // === ENVIAR TODOS LOS EVENTOS AL PANEL PARA LOGGING ===
+                    channel.postMessage({ 
+                        type: 'STREAMERBOT_EVENT',
+                        eventData: data
+                    });
+                    
                     let eventData, source; 
                     try { 
                         if (data.event.source === 'Twitch' && data.event.type === 'ChatMessage') { 
