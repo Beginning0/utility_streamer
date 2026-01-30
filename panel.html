@@ -17,7 +17,7 @@
         .accordion.active .accordion-icon { transform: rotate(45deg); }
 
         label { display: block; margin-bottom: 8px; font-weight: bold; }
-        input[type="text"], select { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #4f545c; background-color: #40444b; color: #f0f0f0; box-sizing: border-box; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #4f545c; background-color: #40444b; color: #f0f0f0; box-sizing: border-box; }
         button { padding: 8px 12px; border-radius: 4px; border: none; color: white; cursor: pointer; font-weight: bold; }
         button:hover { filter: brightness(1.1); }
         
@@ -44,6 +44,12 @@
         .support-section a:hover { color: #7289da; }
         a[href*="twitch.tv"]::before { content: ''; display: inline-block; width: 20px; height: 20px; margin-right: 12px; background-size: contain; background-repeat: no-repeat; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%239146FF"><path d="M11.571 4.714h1.715v5.143H11.57zm4.572 0H17.86v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0H6zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714v9.429z"/></svg>'); }
         a[href*="youtube.com"]::before { content: ''; display: inline-block; width: 20px; height: 20px; margin-right: 12px; background-size: contain; background-repeat: no-repeat; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23FF0000"><path d="M21.582 7.234c-.23-.854-.888-1.512-1.742-1.742C18.258 5 12 5 12 5s-6.258 0-7.84.492c-.854.23-1.512.888-1.742 1.742C2 8.816 2 12 2 12s0 3.184.418 4.766c.23.854.888 1.512 1.742 1.742C5.742 19 12 19 12 19s6.258 0 7.84-.492c.854-.23 1.512.888 1.742-1.742C22 15.184 22 12 22 12s0-3.184-.418-4.766zM9.75 15.428V8.572L15.428 12 9.75 15.428z"/></svg>'); }
+        
+        .rank-config-item { background-color: #40444b; padding: 12px; border-radius: 4px; margin-bottom: 10px; display: grid; grid-template-columns: 1fr 120px auto; gap: 10px; align-items: center; }
+        .rank-name { font-weight: bold; font-size: 1.1em; }
+        .rank-config-item input[type="number"] { width: 100%; }
+        .rank-config-item button { background-color: #7289da; padding: 6px 12px; }
+        .rank-config-item button:hover { background-color: #5b6eae; }
     </style>
 </head>
 <body>
@@ -62,9 +68,22 @@
             <label for="volume-slider">Volumen: <span id="volume-value">30%</span></label>
             <input type="range" id="volume-slider" min="0" max="100" value="30">
             <label for="voice-select" style="margin-top: 15px;">Seleccionar Voz</label>
-            <select id="voice-select"></select>
+            <select id="voice-select">
+                <option value="">Cargando voces...</option>
+            </select>
             <label for="rank-select" style="margin-top: 15px;">Rango Mínimo para Voz</label>
             <select id="rank-select"></select>
+        </div>
+    </div>
+    
+    <div class="accordion">
+        <div class="accordion-header">
+            <h3>Configuración de Rangos RC</h3>
+            <span class="accordion-icon">+</span>
+        </div>
+        <div class="accordion-content">
+            <p style="color: #b9bbbe; font-size: 0.9em; margin-bottom: 15px;">Configura los puntos necesarios para cada rango RC. Los cambios se guardan automáticamente.</p>
+            <div id="rank-config-list"></div>
         </div>
     </div>
     
@@ -74,7 +93,6 @@
             <span class="accordion-icon">-</span>
         </div>
         <div class="accordion-content">
-            <!-- ### NUEVO CAMPO DE BÚSQUEDA ### -->
             <input type="text" id="user-search" placeholder="🔍 Buscar usuario..." style="margin-bottom: 15px;">
             <div id="users-list"></div>
         </div>
@@ -102,14 +120,17 @@
         const voiceSelect = document.getElementById('voice-select');
         const rankSelect = document.getElementById('rank-select');
         const usersListDiv = document.getElementById('users-list');
-        const userSearchInput = document.getElementById('user-search'); // <-- NUEVA REFERENCIA
+        const userSearchInput = document.getElementById('user-search');
+        const rankConfigList = document.getElementById('rank-config-list');
 
-        function renderUsersList(searchTerm = '') { // <-- MODIFICADO: Acepta un término de búsqueda
+        // Variable para rastrear si las voces ya están cargadas
+        let voicesLoaded = false;
+
+        function renderUsersList(searchTerm = '') {
             usersListDiv.innerHTML = '';
             
             let userEntries = Object.entries(usersData);
 
-            // Filtrar usuarios si hay un término de búsqueda
             if (searchTerm.length > 0) {
                 userEntries = userEntries.filter(([username, data]) => 
                     data.displayName.toLowerCase().includes(searchTerm)
@@ -144,28 +165,143 @@
             });
         }
 
-        function populateRankSelect() { const reversedRanks = [...RANKS].reverse(); rankSelect.innerHTML = ''; reversedRanks.forEach(rank => { const option = document.createElement('option'); option.value = rank.name; option.textContent = rank.name; rankSelect.appendChild(option); }); }
-        function populateVoiceSelect() { voices = speechSynthesis.getVoices(); if (voices.length === 0) return; const currentSelected = voiceSelect.value; voiceSelect.innerHTML = ''; voices.forEach(voice => { const option = document.createElement('option'); option.textContent = `${voice.name} (${voice.lang})`; option.value = voice.name; voiceSelect.appendChild(option); }); voiceSelect.value = currentSelected || selectedVoice; }
-        function updatePanelUI() { voiceToggle.checked = voiceEnabled; volumeSlider.value = volume; volumeValueSpan.textContent = `${volume}%`; if (selectedVoice) voiceSelect.value = selectedVoice; if (rankForVoice) rankSelect.value = rankForVoice; renderUsersList(userSearchInput.value.toLowerCase()); }
+        function renderRankConfig() {
+            rankConfigList.innerHTML = '';
+            
+            // Filtrar solo los rangos RC (RC1-RC7)
+            const rcRanks = RANKS.filter(rank => rank.name.startsWith('RC')).sort((a, b) => {
+                const numA = parseInt(a.name.replace('RC', ''));
+                const numB = parseInt(b.name.replace('RC', ''));
+                return numA - numB;
+            });
+            
+            rcRanks.forEach(rank => {
+                const rankItem = document.createElement('div');
+                rankItem.className = 'rank-config-item';
+                
+                rankItem.innerHTML = `
+                    <div class="rank-name">${rank.name}</div>
+                    <input type="number" 
+                           id="points-${rank.name}" 
+                           value="${rank.points}" 
+                           min="0" 
+                           step="10">
+                    <button data-rank="${rank.name}" class="btn-update-rank">Actualizar</button>
+                `;
+                
+                rankConfigList.appendChild(rankItem);
+            });
+        }
+
+        function populateRankSelect() { 
+            const reversedRanks = [...RANKS].reverse(); 
+            rankSelect.innerHTML = ''; 
+            reversedRanks.forEach(rank => { 
+                const option = document.createElement('option'); 
+                option.value = rank.name; 
+                option.textContent = rank.name; 
+                rankSelect.appendChild(option); 
+            }); 
+        }
+
+        // CORRECCIÓN: Mejorar la carga de voces con reintentos
+        function populateVoiceSelect() { 
+            voices = speechSynthesis.getVoices(); 
+            
+            if (voices.length === 0) {
+                console.log('Esperando que las voces se carguen...');
+                return;
+            }
+            
+            const currentSelected = voiceSelect.value;
+            voiceSelect.innerHTML = ''; 
+            
+            voices.forEach(voice => { 
+                const option = document.createElement('option'); 
+                option.textContent = `${voice.name} (${voice.lang})`; 
+                option.value = voice.name; 
+                voiceSelect.appendChild(option); 
+            });
+            
+            // CORRECCIÓN: Restaurar la voz guardada correctamente
+            if (selectedVoice && voices.find(v => v.name === selectedVoice)) {
+                voiceSelect.value = selectedVoice;
+            } else if (currentSelected) {
+                voiceSelect.value = currentSelected;
+            }
+            
+            voicesLoaded = true;
+            console.log(`${voices.length} voces cargadas. Voz seleccionada: ${voiceSelect.value}`);
+        }
+
+        function updatePanelUI() { 
+            voiceToggle.checked = voiceEnabled; 
+            volumeSlider.value = volume; 
+            volumeValueSpan.textContent = `${volume}%`; 
+            
+            // CORRECCIÓN: Solo actualizar si las voces están cargadas
+            if (voicesLoaded && selectedVoice) {
+                voiceSelect.value = selectedVoice;
+            }
+            
+            if (rankForVoice) rankSelect.value = rankForVoice; 
+            renderUsersList(userSearchInput.value.toLowerCase()); 
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             loadState();
             populateRankSelect();
+            renderRankConfig();
             updatePanelUI();
             
+            // CORRECCIÓN: Intentar cargar voces múltiples veces
             populateVoiceSelect();
-            if (speechSynthesis.onvoiceschanged !== undefined) { speechSynthesis.onvoiceschanged = populateVoiceSelect; }
             
-            channel.onmessage = (event) => { if (event.data && event.data.type === 'STATE_UPDATED') { loadState(); updatePanelUI(); } };
+            // Reintentar si las voces no están disponibles inmediatamente
+            if (!voicesLoaded) {
+                setTimeout(populateVoiceSelect, 100);
+                setTimeout(populateVoiceSelect, 500);
+                setTimeout(populateVoiceSelect, 1000);
+            }
+            
+            if (speechSynthesis.onvoiceschanged !== undefined) { 
+                speechSynthesis.onvoiceschanged = () => {
+                    populateVoiceSelect();
+                    updatePanelUI();
+                };
+            }
+            
+            channel.onmessage = (event) => { 
+                if (event.data && event.data.type === 'STATE_UPDATED') { 
+                    loadState(); 
+                    updatePanelUI(); 
+                } 
+            };
 
             // Event Listeners
-            voiceToggle.addEventListener('change', () => { voiceEnabled = voiceToggle.checked; saveState(); });
-            volumeSlider.addEventListener('input', () => { volume = parseInt(volumeSlider.value); volumeValueSpan.textContent = `${volume}%`; });
+            voiceToggle.addEventListener('change', () => { 
+                voiceEnabled = voiceToggle.checked; 
+                saveState(); 
+            });
+            
+            volumeSlider.addEventListener('input', () => { 
+                volume = parseInt(volumeSlider.value); 
+                volumeValueSpan.textContent = `${volume}%`; 
+            });
+            
             volumeSlider.addEventListener('change', () => saveState());
-            voiceSelect.addEventListener('change', () => { selectedVoice = voiceSelect.value; saveState(); });
-            rankSelect.addEventListener('change', () => { rankForVoice = rankSelect.value; saveState(); });
+            
+            voiceSelect.addEventListener('change', () => { 
+                selectedVoice = voiceSelect.value; 
+                console.log('Voz cambiada a:', selectedVoice);
+                saveState(); 
+            });
+            
+            rankSelect.addEventListener('change', () => { 
+                rankForVoice = rankSelect.value; 
+                saveState(); 
+            });
 
-            // --- NUEVO Event Listener para el buscador ---
             userSearchInput.addEventListener('input', () => {
                 const searchTerm = userSearchInput.value.toLowerCase();
                 renderUsersList(searchTerm);
@@ -178,11 +314,58 @@
                 const user = button.dataset.user;
                 const action = button.dataset.action;
 
-                if (action === 'toggle-voice') { if (manualVoiceUsers.has(user)) { manualVoiceUsers.delete(user); } else { manualVoiceUsers.add(user); } } 
-                else if (action === 'toggle-block') { if (ttsBlockedUsers.has(user)) { ttsBlockedUsers.delete(user); } else { ttsBlockedUsers.add(user); } }
+                if (action === 'toggle-voice') { 
+                    if (manualVoiceUsers.has(user)) { 
+                        manualVoiceUsers.delete(user); 
+                    } else { 
+                        manualVoiceUsers.add(user); 
+                    } 
+                } else if (action === 'toggle-block') { 
+                    if (ttsBlockedUsers.has(user)) { 
+                        ttsBlockedUsers.delete(user); 
+                    } else { 
+                        ttsBlockedUsers.add(user); 
+                    } 
+                }
                 
                 saveState();
-                renderUsersList(userSearchInput.value.toLowerCase()); // Volver a renderizar con el filtro actual
+                renderUsersList(userSearchInput.value.toLowerCase());
+            });
+
+            // Event Listener para actualizar puntos de rangos RC
+            rankConfigList.addEventListener('click', (e) => {
+                const button = e.target.closest('button');
+                if (!button) return;
+                
+                const rankName = button.dataset.rank;
+                const input = document.getElementById(`points-${rankName}`);
+                const newPoints = parseInt(input.value);
+                
+                if (isNaN(newPoints) || newPoints < 0) {
+                    alert('Por favor ingresa un valor válido de puntos.');
+                    return;
+                }
+                
+                // Actualizar el valor en el array RANKS
+                const rankIndex = RANKS.findIndex(r => r.name === rankName);
+                if (rankIndex !== -1) {
+                    RANKS[rankIndex].points = newPoints;
+                    
+                    // Reordenar los rangos
+                    RANKS.sort((a, b) => b.points - a.points);
+                    
+                    // Recalcular rangos de usuarios
+                    Object.values(usersData).forEach(userData => {
+                        const newRank = RANKS.find(r => userData.points >= r.points);
+                        if (newRank) {
+                            userData.rank = newRank.name;
+                        }
+                    });
+                    
+                    saveState();
+                    renderUsersList(userSearchInput.value.toLowerCase());
+                    alert(`Rango ${rankName} actualizado a ${newPoints} puntos.`);
+                }
             });
 
             document.querySelectorAll('.accordion-header').forEach(header => {
@@ -190,7 +373,11 @@
                     const accordion = header.parentElement;
                     const icon = header.querySelector('.accordion-icon');
                     accordion.classList.toggle('active');
-                    if(accordion.classList.contains('active')) { icon.textContent = '-'; } else { icon.textContent = '+'; }
+                    if(accordion.classList.contains('active')) { 
+                        icon.textContent = '-'; 
+                    } else { 
+                        icon.textContent = '+'; 
+                    }
                 });
             });
         });
