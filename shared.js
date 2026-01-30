@@ -56,9 +56,7 @@ function getUserData(displayName, platform) {
         // Si el usuario es nuevo, lo creamos con toda la información
         usersData[lowerUser] = { points: 0, rank: 'Novato', displayName: displayName, platform: platform };
     } else {
-        // --- CORRECCIÓN CLAVE ---
-        // Si el usuario ya existe, nos aseguramos de que su plataforma esté registrada.
-        // Esto corrige a los usuarios antiguos que no tenían este dato.
+        // Si el usuario ya existe, nos aseguramos de que su plataforma esté registrada
         if (platform && !usersData[lowerUser].platform) {
             usersData[lowerUser].platform = platform;
         }
@@ -70,9 +68,19 @@ function getUserData(displayName, platform) {
 
 function hasVoicePermission(displayName, platform) {
     const lowerUser = displayName.toLowerCase();
+    
+    // El Bot del sistema no debe usar TTS
+    if (displayName === 'Bot' || platform === 'Sistema') {
+        return false;
+    }
+    
+    // Si está bloqueado, no tiene voz (pero SÍ se muestra su mensaje)
     if (ttsBlockedUsers.has(lowerUser)) return false;
+    
+    // Si tiene permiso manual, tiene voz
     if (manualVoiceUsers.has(lowerUser)) return true;
     
+    // Verificar por rango...
     const userData = getUserData(displayName, platform);
     const userRankIndex = RANKS.findIndex(r => r.name === userData.rank);
     const requiredRankIndex = RANKS.findIndex(r => r.name === rankForVoice); 
