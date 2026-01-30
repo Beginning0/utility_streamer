@@ -69,18 +69,14 @@ function getUserData(displayName, platform) {
 function hasVoicePermission(displayName, platform) {
     const lowerUser = displayName.toLowerCase();
     
-    // El Bot del sistema no debe usar TTS
+    // CORRECCIÓN: No bloquear mensajes del sistema (Bot)
     if (displayName === 'Bot' || platform === 'Sistema') {
-        return false;
+        return false; // El bot del sistema no debe usar TTS
     }
     
-    // Si está bloqueado, no tiene voz (pero SÍ se muestra su mensaje)
     if (ttsBlockedUsers.has(lowerUser)) return false;
-    
-    // Si tiene permiso manual, tiene voz
     if (manualVoiceUsers.has(lowerUser)) return true;
     
-    // Verificar por rango...
     const userData = getUserData(displayName, platform);
     const userRankIndex = RANKS.findIndex(r => r.name === userData.rank);
     const requiredRankIndex = RANKS.findIndex(r => r.name === rankForVoice); 
