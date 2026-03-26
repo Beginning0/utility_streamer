@@ -94,6 +94,60 @@
             </select>
             <label for="rank-select" style="margin-top: 15px;">Rango Mínimo para Voz</label>
             <select id="rank-select"></select>
+
+            <hr style="border: 0; border-top: 1px solid #4f545c; margin: 15px 0;">
+            <label for="emote-noise-threshold">Umbral de emotes para ruido (4 recomendado)</label>
+            <input type="number" id="emote-noise-threshold" min="1" max="30" value="4">
+
+            <label for="emote-noise-reduction" style="margin-top: 15px;">Reducción de volumen por ruido: <span id="emote-noise-reduction-value">55%</span></label>
+            <input type="range" id="emote-noise-reduction" min="0" max="90" value="55">
+        </div>
+    </div>
+
+    <div class="accordion">
+        <div class="accordion-header">
+            <h3>Barra de Anuncios</h3>
+            <span class="accordion-icon">+</span>
+        </div>
+        <div class="accordion-content">
+            <div class="toggle-switch">
+                <label for="announcement-bar-toggle">Activar barra de anuncios</label>
+                <input type="checkbox" id="announcement-bar-toggle">
+            </div>
+
+            <label for="announcement-min-chars">Mínimo de caracteres del mensaje</label>
+            <input type="number" id="announcement-min-chars" min="5" max="300" value="40">
+
+            <label for="announcement-duration" style="margin-top: 15px;">Duración en pantalla (segundos)</label>
+            <input type="number" id="announcement-duration" min="5" max="45" value="10">
+
+            <p style="color: #b9bbbe; font-size: 0.9em; margin-top: 12px;">
+                Cuando está activa, los mensajes largos también aparecen en una barra superior tipo anuncio.
+            </p>
+        </div>
+    </div>
+
+    <div class="accordion">
+        <div class="accordion-header">
+            <h3>Automatizacion !clip</h3>
+            <span class="accordion-icon">+</span>
+        </div>
+        <div class="accordion-content">
+            <div class="toggle-switch">
+                <label for="clip-command-enabled">Activar comando !clip</label>
+                <input type="checkbox" id="clip-command-enabled">
+            </div>
+
+            <label for="clip-action-name">Nombre de accion en Streamer.bot</label>
+            <input type="text" id="clip-action-name" value="Crear Clip" placeholder="Ej: Crear Clip">
+
+            <label for="clip-cooldown" style="margin-top: 15px;">Cooldown !clip (segundos)</label>
+            <input type="number" id="clip-cooldown" min="5" max="300" value="45">
+
+            <div class="toggle-switch" style="margin-top: 15px;">
+                <label for="clip-only-mods">Solo mods/owner pueden usar !clip</label>
+                <input type="checkbox" id="clip-only-mods">
+            </div>
         </div>
     </div>
     
@@ -163,6 +217,16 @@
         const volumeValueSpan = document.getElementById('volume-value');
         const voiceSelect = document.getElementById('voice-select');
         const rankSelect = document.getElementById('rank-select');
+        const emoteNoiseThresholdInput = document.getElementById('emote-noise-threshold');
+        const emoteNoiseReductionInput = document.getElementById('emote-noise-reduction');
+        const emoteNoiseReductionValue = document.getElementById('emote-noise-reduction-value');
+        const announcementBarToggle = document.getElementById('announcement-bar-toggle');
+        const announcementMinCharsInput = document.getElementById('announcement-min-chars');
+        const announcementDurationInput = document.getElementById('announcement-duration');
+        const clipCommandEnabledInput = document.getElementById('clip-command-enabled');
+        const clipActionNameInput = document.getElementById('clip-action-name');
+        const clipCooldownInput = document.getElementById('clip-cooldown');
+        const clipOnlyModsInput = document.getElementById('clip-only-mods');
         const usersListDiv = document.getElementById('users-list');
         const userSearchInput = document.getElementById('user-search');
         const rankConfigList = document.getElementById('rank-config-list');
@@ -290,6 +354,16 @@
             voiceToggle.checked = voiceEnabled; 
             volumeSlider.value = volume; 
             volumeValueSpan.textContent = `${volume}%`; 
+            emoteNoiseThresholdInput.value = emoteNoiseThreshold;
+            emoteNoiseReductionInput.value = emoteNoiseReductionPercent;
+            emoteNoiseReductionValue.textContent = `${emoteNoiseReductionPercent}%`;
+            announcementBarToggle.checked = announcementBarEnabled;
+            announcementMinCharsInput.value = announcementBarMinChars;
+            announcementDurationInput.value = announcementBarDurationSec;
+            clipCommandEnabledInput.checked = clipCommandEnabled;
+            clipActionNameInput.value = clipActionName;
+            clipCooldownInput.value = clipCommandCooldownSec;
+            clipOnlyModsInput.checked = clipOnlyMods;
             
             // CORRECCIÓN: Solo actualizar si las voces están cargadas
             if (voicesLoaded && selectedVoice) {
@@ -482,6 +556,67 @@
             rankSelect.addEventListener('change', () => { 
                 rankForVoice = rankSelect.value; 
                 saveState(); 
+            });
+
+            emoteNoiseThresholdInput.addEventListener('change', () => {
+                const parsedValue = parseInt(emoteNoiseThresholdInput.value);
+                emoteNoiseThreshold = isNaN(parsedValue) ? 4 : Math.max(1, Math.min(30, parsedValue));
+                emoteNoiseThresholdInput.value = emoteNoiseThreshold;
+                saveState();
+            });
+
+            emoteNoiseReductionInput.addEventListener('input', () => {
+                emoteNoiseReductionPercent = parseInt(emoteNoiseReductionInput.value);
+                emoteNoiseReductionValue.textContent = `${emoteNoiseReductionPercent}%`;
+            });
+
+            emoteNoiseReductionInput.addEventListener('change', () => {
+                emoteNoiseReductionPercent = Math.max(0, Math.min(90, parseInt(emoteNoiseReductionInput.value) || 55));
+                emoteNoiseReductionInput.value = emoteNoiseReductionPercent;
+                emoteNoiseReductionValue.textContent = `${emoteNoiseReductionPercent}%`;
+                saveState();
+            });
+
+            announcementBarToggle.addEventListener('change', () => {
+                announcementBarEnabled = announcementBarToggle.checked;
+                saveState();
+            });
+
+            announcementMinCharsInput.addEventListener('change', () => {
+                const parsedValue = parseInt(announcementMinCharsInput.value);
+                announcementBarMinChars = isNaN(parsedValue) ? 40 : Math.max(5, Math.min(300, parsedValue));
+                announcementMinCharsInput.value = announcementBarMinChars;
+                saveState();
+            });
+
+            announcementDurationInput.addEventListener('change', () => {
+                const parsedValue = parseInt(announcementDurationInput.value);
+                announcementBarDurationSec = isNaN(parsedValue) ? 10 : Math.max(5, Math.min(45, parsedValue));
+                announcementDurationInput.value = announcementBarDurationSec;
+                saveState();
+            });
+
+            clipCommandEnabledInput.addEventListener('change', () => {
+                clipCommandEnabled = clipCommandEnabledInput.checked;
+                saveState();
+            });
+
+            clipActionNameInput.addEventListener('change', () => {
+                clipActionName = (clipActionNameInput.value || '').trim() || 'Crear Clip';
+                clipActionNameInput.value = clipActionName;
+                saveState();
+            });
+
+            clipCooldownInput.addEventListener('change', () => {
+                const parsedValue = parseInt(clipCooldownInput.value);
+                clipCommandCooldownSec = isNaN(parsedValue) ? 45 : Math.max(5, Math.min(300, parsedValue));
+                clipCooldownInput.value = clipCommandCooldownSec;
+                saveState();
+            });
+
+            clipOnlyModsInput.addEventListener('change', () => {
+                clipOnlyMods = clipOnlyModsInput.checked;
+                saveState();
             });
 
             userSearchInput.addEventListener('input', () => {
