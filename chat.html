@@ -8,9 +8,28 @@
         body { margin: 0; padding: 0; overflow: hidden; background: transparent; color: #f0f0f0; font-family: 'Arial Black', Gadget, sans-serif; }
         #chat-column { width: 100%; height: 100vh; overflow: hidden; position: relative; }
         #chat { position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; font-size: 16px; background: transparent; display: flex; flex-direction: column; justify-content: flex-end; }
+        #announcement-bar-container { position: absolute; bottom: 14px; left: 0; width: 100%; height: 54px; overflow: hidden; pointer-events: none; z-index: 12000; }
+        .announcement-bar { position: absolute; left: 100%; top: 0; display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; padding: 12px 20px; border-radius: 12px; background: rgba(20, 20, 20, 0.85); border: 2px solid rgba(255, 220, 120, 0.75); color: #fff4d0; font-size: 20px; font-weight: 700; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.7); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35); }
+        .announcement-prefix { color: #ffe58a; }
+        .announcement-bar.active { animation-name: tickerMove; animation-timing-function: linear; animation-fill-mode: forwards; }
+        @keyframes tickerMove { from { transform: translateX(0); } to { transform: translateX(calc(-100vw - 120%)); } }
         .message { margin: 10px; padding: 10px; border-radius: 10px; display: flex; align-items: center; background-color: transparent; text-shadow: none; animation: slideIn 1s ease-out, fadeOut 25s forwards; }
         @keyframes slideIn { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes fadeOut { 0%, 95% { opacity: 1; } 100% { opacity: 0; } }
+        .message.noise-overload { animation: slideIn 0.6s ease-out, noiseFadeOut 4.5s forwards; }
+        .message.noise-overload .message-text { animation: noiseGlitch 0.55s steps(2, end) infinite; }
+        @keyframes noiseFadeOut {
+            0% { opacity: 1; filter: blur(0px); transform: translateX(0) scale(1); }
+            55% { opacity: 0.95; filter: blur(0.5px); transform: translateX(-2px) scale(0.995); }
+            100% { opacity: 0; filter: blur(2px); transform: translateX(-12px) scale(0.96); }
+        }
+        @keyframes noiseGlitch {
+            0% { transform: translateX(0); opacity: 1; }
+            25% { transform: translateX(-2px); opacity: 0.92; }
+            50% { transform: translateX(2px); opacity: 0.86; }
+            75% { transform: translateX(-1px); opacity: 0.93; }
+            100% { transform: translateX(0); opacity: 1; }
+        }
         .username { font-weight: bold; margin-right: 10px; padding: 5px; border-radius: 5px; background-color: #ff0000; color: #fff; display: flex; align-items: center; }
         .message-text { padding: 5px; border-radius: 5px; background-color: #ffffff; color: #000; white-space: pre-wrap; text-shadow: none; }
         .platform-icon, .crown-icon { width: 20px; height: 20px; margin-right: 5px; }
@@ -35,15 +54,119 @@
 <body>
     <div id="chat-column">
         <div id="chat"></div>
+        <div id="announcement-bar-container"></div>
         <div id="rank-up-animation-container"></div>
     </div>
     <script src="shared.js"></script>
     <script src="https://unpkg.com/@streamerbot/client@1.5.1/dist/streamerbot-client.js"></script>
     <script>
         const chatEl = document.getElementById('chat');
+        const announcementContainer = document.getElementById('announcement-bar-container');
         const animationContainer = document.getElementById('rank-up-animation-container');
         let speechQueue = [];
         let currentUtterance = null;
+        let lastVoiceEnabledState = null;
+        let announcementQueue = [];
+        let announcementActive = false;
+        let sbClient = null;
+        let lastClipCommandTimestamp = 0;
+
+        function setChatHiddenByTicker(isHidden) {
+            chatEl.style.display = isHidden ? 'none' : 'flex';
+        }
+
+        function escapeRegex(value) {
+            return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function countUnicodeEmoji(text) {
+            if (!text) return 0;
+            const emojiMatches = text.match(/\p{Extended_Pictographic}/gu);
+            return emojiMatches ? emojiMatches.length : 0;
+        }
+
+        function countYoutubeNamedEmotes(text) {
+            if (!text) return 0;
+            let count = 0;
+            Object.keys(youtubeEmotes || {}).forEach((token) => {
+                const tokenRegex = new RegExp(escapeRegex(token), 'g');
+                const matches = text.match(tokenRegex);
+                if (matches) count += matches.length;
+            });
+            return count;
+        }
+
+        function countMessageEmotes(platform, message, emotes) {
+            const twitchCount = Array.isArray(emotes) ? emotes.length : 0;
+            const youtubeNamedCount = platform === 'YouTube' ? countYoutubeNamedEmotes(message) : 0;
+            const unicodeCount = countUnicodeEmoji(message);
+            return twitchCount + youtubeNamedCount + unicodeCount;
+        }
+
+        function resetSpeechState() {
+            speechQueue = [];
+            currentUtterance = null;
+            speechSynthesis.cancel();
+        }
+
+        function syncVoiceRuntimeState(force = false) {
+            const previousState = lastVoiceEnabledState;
+            lastVoiceEnabledState = voiceEnabled;
+
+            if (force || (previousState === true && voiceEnabled === false)) {
+                resetSpeechState();
+                return;
+            }
+
+            if (previousState === false && voiceEnabled === true) {
+                processSpeechQueue();
+            }
+        }
+
+        function stripHtmlTags(text) {
+            if (!text) return '';
+            return text.replace(/<[^>]*>?/gm, '');
+        }
+
+        function queueAnnouncement(platform, displayName, message) {
+            if (!announcementBarEnabled) return;
+
+            const safeText = stripHtmlTags(message || '').trim();
+            if (!safeText) return;
+            if (safeText.length < announcementBarMinChars) return;
+
+            announcementQueue.push({ platform, displayName, message: safeText });
+            renderNextAnnouncement();
+        }
+
+        function renderNextAnnouncement() {
+            if (announcementActive || announcementQueue.length === 0 || !announcementBarEnabled) return;
+
+            const nextItem = announcementQueue.shift();
+            const bar = document.createElement('div');
+            bar.className = 'announcement-bar';
+
+            bar.innerHTML = `<span class="announcement-prefix">${nextItem.displayName}:</span><span>${nextItem.message}</span>`;
+            bar.style.animationDuration = `${announcementBarDurationSec}s`;
+
+            announcementActive = true;
+            setChatHiddenByTicker(true);
+            announcementContainer.appendChild(bar);
+            requestAnimationFrame(() => bar.classList.add('active'));
+
+            let cleaned = false;
+            const cleanup = () => {
+                if (cleaned) return;
+                cleaned = true;
+                if (bar.parentNode) bar.remove();
+                announcementActive = false;
+                if (!announcementBarEnabled && announcementQueue.length === 0) setChatHiddenByTicker(false);
+                setTimeout(renderNextAnnouncement, 120);
+            };
+
+            bar.addEventListener('animationend', cleanup, { once: true });
+            setTimeout(cleanup, (announcementBarDurationSec * 1000) + 200);
+        }
 
         function createConfetti() { 
             const confettiContainer = document.body; 
@@ -72,9 +195,12 @@
             setTimeout(() => notification.remove(), 5000); 
         }
 
-        function addMessage(platform, displayName, message, badges, emotes, color, profileImageUrl) { 
+        function addMessage(platform, displayName, message, badges, emotes, color, profileImageUrl, emoteCount = 0) { 
             const urlPattern = /https?:\/\/[^\s]+/; 
             if (urlPattern.test(message)) return; 
+
+            // Modo exclusivo: si la barra de anuncios está activa, no se renderiza chat normal.
+            if (announcementBarEnabled && platform !== 'Sistema') return;
             
             const messageDiv = document.createElement('div'); 
             messageDiv.className = 'message'; 
@@ -136,6 +262,11 @@
             messageContentDiv.appendChild(messageText); 
             messageDiv.appendChild(badgeContainer); 
             messageDiv.appendChild(messageContentDiv); 
+
+            if (emoteCount >= emoteNoiseThreshold) {
+                messageDiv.classList.add('noise-overload');
+            }
+
             chatEl.appendChild(messageDiv); 
             
             if (chatEl.children.length > 30) chatEl.removeChild(chatEl.firstChild); 
@@ -167,8 +298,8 @@
             
             loadState(); // Asegurar que tenemos el estado más reciente
             
-            const messageToSpeak = speechQueue.shift(); 
-            const utterance = new SpeechSynthesisUtterance(messageToSpeak); 
+            const queuedSpeech = speechQueue.shift(); 
+            const utterance = new SpeechSynthesisUtterance(queuedSpeech.text); 
             
             voices = speechSynthesis.getVoices(); 
             
@@ -191,7 +322,9 @@
                 console.log(`Usando voz: ${voice.name} (${voice.lang})`);
             } 
             
-            utterance.volume = volume / 100; 
+            const volumeMultiplier = queuedSpeech.volumeMultiplier || 1;
+            const finalVolume = Math.max(0, Math.min(1, (volume / 100) * volumeMultiplier));
+            utterance.volume = finalVolume;
             utterance.onend = () => {
                 currentUtterance = null;
                 processSpeechQueue();
@@ -206,12 +339,67 @@
             speechSynthesis.speak(utterance); 
         }
 
-        function speakMessage(message) { 
-            speechQueue.push(message); 
+        function speakMessage(message, options = {}) { 
+            speechQueue.push({ text: message, volumeMultiplier: options.volumeMultiplier || 1 }); 
             processSpeechQueue(); 
         }
 
-        function processCommand(platform, displayName, message, isOwner) { 
+        function hasClipPermission(eventData) {
+            if (!clipOnlyMods) return true;
+            if (eventData.isBroadcaster || eventData.isOwner || eventData.isModerator) return true;
+
+            const badgeNames = (eventData.badges || []).map((badge) => {
+                if (typeof badge === 'string') return badge.toLowerCase();
+                const value = badge?.name || badge?.id || '';
+                return String(value).toLowerCase();
+            });
+
+            return badgeNames.some((name) =>
+                name.includes('broadcaster') ||
+                name.includes('owner') ||
+                name.includes('moderator') ||
+                name.includes('mod')
+            );
+        }
+
+        async function triggerClipAction(source, displayName) {
+            if (!clipCommandEnabled) {
+                addMessage('Sistema', 'Bot', 'El comando !clip esta desactivado en el panel.', [], [], '#f04747', '');
+                return;
+            }
+
+            if (!sbClient) {
+                addMessage('Sistema', 'Bot', 'No hay conexion activa con Streamer.bot.', [], [], '#f04747', '');
+                return;
+            }
+
+            const now = Date.now();
+            const elapsed = now - lastClipCommandTimestamp;
+            const cooldownMs = clipCommandCooldownSec * 1000;
+
+            if (elapsed < cooldownMs) {
+                const secondsLeft = Math.ceil((cooldownMs - elapsed) / 1000);
+                addMessage('Sistema', 'Bot', `!clip en cooldown: espera ${secondsLeft}s.`, [], [], '#faa61a', '');
+                return;
+            }
+
+            const actionName = (clipActionName || '').trim();
+            if (!actionName) {
+                addMessage('Sistema', 'Bot', 'Configura el nombre de accion !clip en el panel.', [], [], '#f04747', '');
+                return;
+            }
+
+            try {
+                await sbClient.doAction({ name: actionName }, { source, requestedBy: displayName, command: '!clip' });
+                lastClipCommandTimestamp = now;
+                addMessage('Sistema', 'Bot', `Clip solicitado por ${displayName}.`, [], [], '#43b581', '');
+            } catch (error) {
+                console.error('Error ejecutando accion !clip:', error);
+                addMessage('Sistema', 'Bot', `No se pudo ejecutar la accion "${actionName}".`, [], [], '#f04747', '');
+            }
+        }
+
+        function processCommand(platform, displayName, message, isOwner, eventData = {}) { 
             const [command, ...args] = message.split(' '); 
             const input = args.join(' ').trim(); 
             const lowerInput = input.toLowerCase(); 
@@ -223,6 +411,79 @@
                 addMessage('Sistema', 'Bot', reply, [], [], '#7289da', ''); 
                 return; 
             } 
+
+            if (command.toLowerCase() === '!clip') {
+                const clipArg = (args[0] || '').toLowerCase();
+
+                if (clipArg === 'on' || clipArg === 'off') {
+                    if (!isOwner) {
+                        addMessage('Sistema', 'Bot', `${displayName}, solo el owner puede usar !clip on/off.`, [], [], '#f04747', '');
+                        return;
+                    }
+
+                    clipCommandEnabled = clipArg === 'on';
+                    saveState();
+                    addMessage('Sistema', 'Bot', `Comando !clip ${clipCommandEnabled ? 'activado' : 'desactivado'} por ${displayName}.`, [], [], '#43b581', '');
+                    return;
+                }
+
+                if (clipArg === 'public' || clipArg === 'all') {
+                    if (!isOwner) {
+                        addMessage('Sistema', 'Bot', `${displayName}, solo el owner puede cambiar permisos de !clip.`, [], [], '#f04747', '');
+                        return;
+                    }
+
+                    clipOnlyMods = false;
+                    saveState();
+                    addMessage('Sistema', 'Bot', 'Ahora !clip puede usarlo todo el chat (con cooldown).', [], [], '#43b581', '');
+                    return;
+                }
+
+                if (clipArg === 'mods' || clipArg === 'mod') {
+                    if (!isOwner) {
+                        addMessage('Sistema', 'Bot', `${displayName}, solo el owner puede cambiar permisos de !clip.`, [], [], '#f04747', '');
+                        return;
+                    }
+
+                    clipOnlyMods = true;
+                    saveState();
+                    addMessage('Sistema', 'Bot', 'Ahora !clip solo lo pueden usar mods/owner.', [], [], '#43b581', '');
+                    return;
+                }
+
+                if (clipArg === 'cd' || clipArg === 'cooldown') {
+                    if (!isOwner) {
+                        addMessage('Sistema', 'Bot', `${displayName}, solo el owner puede cambiar el cooldown de !clip.`, [], [], '#f04747', '');
+                        return;
+                    }
+
+                    const seconds = parseInt(args[1]);
+                    if (isNaN(seconds) || seconds < 5 || seconds > 300) {
+                        addMessage('Sistema', 'Bot', 'Uso: !clip cd <segundos> (5 a 300).', [], [], '#faa61a', '');
+                        return;
+                    }
+
+                    clipCommandCooldownSec = seconds;
+                    saveState();
+                    addMessage('Sistema', 'Bot', `Cooldown de !clip actualizado a ${seconds}s.`, [], [], '#43b581', '');
+                    return;
+                }
+
+                if (clipArg === 'status') {
+                    const mode = clipOnlyMods ? 'mods/owner' : 'publico';
+                    const enabled = clipCommandEnabled ? 'ON' : 'OFF';
+                    addMessage('Sistema', 'Bot', `!clip ${enabled} | modo: ${mode} | cooldown: ${clipCommandCooldownSec}s`, [], [], '#7289da', '');
+                    return;
+                }
+
+                if (!hasClipPermission(eventData)) {
+                    addMessage('Sistema', 'Bot', `${displayName}, no tienes permiso para usar !clip.`, [], [], '#f04747', '');
+                    return;
+                }
+
+                triggerClipAction(platform, displayName);
+                return;
+            }
             
             if (!isOwner) return; 
             
@@ -272,6 +533,7 @@
 
         document.addEventListener('DOMContentLoaded', () => { 
             loadState(); 
+            syncVoiceRuntimeState(true);
             
             // Cargar las voces al inicio
             speechSynthesis.getVoices();
@@ -286,6 +548,18 @@
                 if (event.data && event.data.type === 'STATE_UPDATED') { 
                     console.log('Chat: Estado actualizado desde el panel.'); 
                     loadState(); 
+                    syncVoiceRuntimeState();
+
+                    if (!announcementBarEnabled) {
+                        announcementQueue = [];
+                        announcementActive = false;
+                        announcementContainer.innerHTML = '';
+                        setChatHiddenByTicker(false);
+                    } else {
+                        // Al activar barra, ocultar chat inmediatamente para modo exclusivo.
+                        setChatHiddenByTicker(true);
+                        renderNextAnnouncement();
+                    }
                 } 
             }; 
             
@@ -329,10 +603,14 @@
                     if (!displayName || !message) return; 
                     
                     if (message.startsWith('!')) { 
-                        processCommand(source, displayName, message, isBroadcaster || isOwner); 
+                            processCommand(source, displayName, message, isBroadcaster || isOwner, eventData); 
                     } else { 
+                        const emoteCount = countMessageEmotes(source, message, emotes);
+                        const isNoiseMessage = emoteCount >= emoteNoiseThreshold;
+
                         addPointsForChat(displayName, source); 
-                        addMessage(source, displayName, message, badges, emotes, color, eventData.profileImageUrl || ''); 
+                        addMessage(source, displayName, message, badges, emotes, color, eventData.profileImageUrl || '', emoteCount); 
+                        queueAnnouncement(source, displayName, message);
                         
                         const lyraPayload = {
                             username: displayName,
@@ -344,7 +622,8 @@
                         // CORRECCIÓN: Solo usar TTS si el usuario tiene permiso
                         // El bot del sistema nunca debe usar TTS
                         if (hasVoicePermission(displayName, source)) {
-                            speakMessage(`${displayName}: ${message}`);
+                            const volumeMultiplier = isNoiseMessage ? (1 - (emoteNoiseReductionPercent / 100)) : 1;
+                            speakMessage(`${displayName}: ${message}`, { volumeMultiplier });
                         }
                         
                         clearTimeout(window.saveTimeout); 
@@ -353,6 +632,7 @@
                 } 
             }); 
             
+            sbClient = client;
             client.connect(); 
         });
     </script>
