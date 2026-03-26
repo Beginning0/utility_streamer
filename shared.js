@@ -18,6 +18,15 @@ let voices = [];
 let volume = 30;
 let voiceEnabled = false;
 let rankForVoice = 'RC7';
+let emoteNoiseThreshold = 4;
+let emoteNoiseReductionPercent = 55;
+let announcementBarEnabled = false;
+let announcementBarMinChars = 40;
+let announcementBarDurationSec = 10;
+let clipCommandEnabled = true;
+let clipActionName = 'Crear Clip';
+let clipCommandCooldownSec = 45;
+let clipOnlyMods = true;
 
 // --- COMUNICACIÓN ENTRE PESTAÑAS ---
 const channel = new BroadcastChannel('utility_streamer_state');
@@ -31,6 +40,15 @@ function saveState() {
     localStorage.setItem('volume', volume);
     localStorage.setItem('voiceEnabled', voiceEnabled);
     localStorage.setItem('rankForVoice', rankForVoice);
+    localStorage.setItem('emoteNoiseThreshold', emoteNoiseThreshold);
+    localStorage.setItem('emoteNoiseReductionPercent', emoteNoiseReductionPercent);
+    localStorage.setItem('announcementBarEnabled', announcementBarEnabled);
+    localStorage.setItem('announcementBarMinChars', announcementBarMinChars);
+    localStorage.setItem('announcementBarDurationSec', announcementBarDurationSec);
+    localStorage.setItem('clipCommandEnabled', clipCommandEnabled);
+    localStorage.setItem('clipActionName', clipActionName);
+    localStorage.setItem('clipCommandCooldownSec', clipCommandCooldownSec);
+    localStorage.setItem('clipOnlyMods', clipOnlyMods);
     channel.postMessage({ type: 'STATE_UPDATED' });
 }
 
@@ -43,6 +61,22 @@ function loadState() {
         volume = parseInt(localStorage.getItem('volume')) || 30;
         voiceEnabled = localStorage.getItem('voiceEnabled') === 'true';
         rankForVoice = localStorage.getItem('rankForVoice') || 'RC7';
+        emoteNoiseThreshold = parseInt(localStorage.getItem('emoteNoiseThreshold')) || 4;
+        emoteNoiseReductionPercent = parseInt(localStorage.getItem('emoteNoiseReductionPercent')) || 55;
+        announcementBarEnabled = localStorage.getItem('announcementBarEnabled') === 'true';
+        announcementBarMinChars = parseInt(localStorage.getItem('announcementBarMinChars')) || 40;
+        announcementBarDurationSec = parseInt(localStorage.getItem('announcementBarDurationSec')) || 10;
+        clipCommandEnabled = localStorage.getItem('clipCommandEnabled') !== 'false';
+        clipActionName = (localStorage.getItem('clipActionName') || 'Crear Clip').trim();
+        clipCommandCooldownSec = parseInt(localStorage.getItem('clipCommandCooldownSec')) || 45;
+        clipOnlyMods = localStorage.getItem('clipOnlyMods') !== 'false';
+
+        emoteNoiseThreshold = Math.max(1, Math.min(30, emoteNoiseThreshold));
+        emoteNoiseReductionPercent = Math.max(0, Math.min(90, emoteNoiseReductionPercent));
+        announcementBarMinChars = Math.max(5, Math.min(300, announcementBarMinChars));
+        announcementBarDurationSec = Math.max(5, Math.min(45, announcementBarDurationSec));
+        clipCommandCooldownSec = Math.max(5, Math.min(300, clipCommandCooldownSec));
+        if (!clipActionName) clipActionName = 'Crear Clip';
     } catch (e) {
         console.error("Error al cargar el estado desde localStorage:", e);
         usersData = {}; manualVoiceUsers = new Set(); ttsBlockedUsers = new Set();
