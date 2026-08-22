@@ -598,8 +598,13 @@
                         return; 
                     } 
                     
-                    const { displayName, message, badges = [], emotes = [], color = '#FF0000', isBroadcaster, isOwner } = eventData; 
-                    
+                    const { displayName, message, badges = [], emotes = [], color = '#FF0000', isBroadcaster, isOwner, isModerator } = eventData;
+
+                    // FIX: Streamer.bot no envía isOwner/isModerator para Twitch, extraer de user.role
+                    const userRole = data.data.user?.role;
+                    if (isOwner === undefined) isOwner = userRole === 4;
+                    if (isModerator === undefined) isModerator = userRole === 3;
+
                     if (!displayName || !message) return; 
                     
                     if (message.startsWith('!')) { 
@@ -608,7 +613,9 @@
                         const emoteCount = countMessageEmotes(source, message, emotes);
                         const isNoiseMessage = emoteCount >= emoteNoiseThreshold;
 
-                        addPointsForChat(displayName, source); 
+                        addPointsForChat(displayName, source);
+                        // Actualizar timestamp de última actividad para auto-limpieza
+                        getUserData(displayName, source).lastActive = Date.now();
                         addMessage(source, displayName, message, badges, emotes, color, eventData.profileImageUrl || '', emoteCount); 
                         queueAnnouncement(source, displayName, message);
                         
