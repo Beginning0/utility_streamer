@@ -193,6 +193,20 @@
         <div class="accordion-content">
             <input type="text" id="user-search" placeholder="🔍 Buscar usuario..." style="margin-bottom: 15px;">
             <div id="users-list"></div>
+
+            <hr style="border:0; border-top:1px solid #4f545c; margin:20px 0;">
+            <h3 style="font-size:1em; color:#b9bbbe;">Limpieza automática</h3>
+            <div class="toggle-switch">
+                <label for="auto-cleanup-toggle">Activar auto-limpieza de inactivos</label>
+                <input type="checkbox" id="auto-cleanup-toggle">
+            </div>
+            <label for="cleanup-days" style="margin-top:8px;">Días de inactividad antes de eliminar</label>
+            <input type="number" id="cleanup-days" min="1" max="30" value="3">
+            <p style="color:#8e9297; font-size:0.8em; margin-top:6px;">Usuarios sin interacción en N días se eliminan y pierden voz manual / bloqueo.</p>
+
+            <hr style="border:0; border-top:1px solid #4f545c; margin:20px 0;">
+            <h3 style="font-size:1em; color:#b9bbbe;">Migración a IndexedDB</h3>
+            <p style="color:#8e9297; font-size:0.8em;">Usuarios con más de 500 puntos se almacenan en IndexedDB para evitar llenar localStorage. El badge [IDB] indica que un usuario está en IndexedDB.</p>
         </div>
     </div>
 
@@ -244,35 +258,40 @@
 
         function renderUsersList(searchTerm = '') {
             usersListDiv.innerHTML = '';
-            
+
             let userEntries = Object.entries(usersData);
 
             if (searchTerm.length > 0) {
-                userEntries = userEntries.filter(([username, data]) => 
-                    data.displayName.toLowerCase().includes(searchTerm)
+                userEntries = userEntries.filter(([username]) =>
+                    username.toLowerCase().includes(searchTerm)
                 );
             }
 
             const sortedUsers = userEntries.sort(([, a], [, b]) => b.points - a.points);
-            
+
+            // Verificar qué usuarios están en localStorage vs IndexedDB
+            let lsUsers = {};
+            try { lsUsers = JSON.parse(localStorage.getItem('usersData')) || {}; } catch(e) {}
+
             sortedUsers.forEach(([username, data]) => {
                 const isManual = manualVoiceUsers.has(username);
                 const isBlocked = ttsBlockedUsers.has(username);
+                const inDB = !lsUsers[username]; // Si no está en localStorage, está en IndexedDB
+
                 const platformClass = data.platform === 'YouTube' ? 'platform-youtube' : 'platform-twitch';
-                
+
                 const userItem = document.createElement('div');
                 userItem.className = 'user-item';
-                
+
                 const voiceButton = `<button data-user="${username}" data-action="toggle-voice" class="${isManual ? 'btn-voice-remove' : 'btn-voice-add'}">${isManual ? 'Quitar Voz' : 'Dar Voz'}</button>`;
                 const blockButton = `<button data-user="${username}" data-action="toggle-block" class="${isBlocked ? 'btn-unblock' : 'btn-block'}">${isBlocked ? 'Desbloquear' : 'Bloquear'}</button>`;
 
                 userItem.innerHTML = `
                     <div class="user-info">
-                        <div class="platform-logo ${platformClass}" title="${data.platform || 'N/A'}"></div>
-                        <div>
-                           <span class="user-name" title="${data.displayName}">${data.displayName}</span>
-                           <div class="user-stats">${data.rank} - ${data.points} Pts</div>
-                        </div>
+                        ${data.platform ? `<div class="platform-logo ${platformClass}" title="${data.platform}"></div>` : ''}
+                        <span class="user-name">${username}</span>
+                        ${inDB ? '<span class="user-stats" style="color:#faa61a;">[IDB]</span>' : ''}
+                        <div class="user-stats">${data.rank} - ${data.points} Pts</div>
                     </div>
                     ${voiceButton}
                     ${blockButton}
@@ -498,6 +517,10 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             loadState();
+
+            // Ejecutar auto-limpieza al cargar panel
+            cleanupInactiveUsers();
+
             populateRankSelect();
             renderRankConfig();
             updatePanelUI();
@@ -616,6 +639,22 @@
 
             clipOnlyModsInput.addEventListener('change', () => {
                 clipOnlyMods = clipOnlyModsInput.checked;
+                saveState();
+            });
+
+            // Auto-limpieza event listeners
+            const autoCleanupToggle = document.getElementById('auto-cleanup-toggle');
+            const cleanupDaysInput = document.getElementById('cleanup-days');
+
+            autoCleanupToggle.addEventListener('change', () => {
+                autoCleanupEnabled = autoCleanupToggle.checked;
+                saveState();
+            });
+
+            cleanupDaysInput.addEventListener('change', () => {
+                const val = parseInt(cleanupDaysInput.value);
+                cleanupInactivityDays = isNaN(val) ? 3 : Math.max(1, Math.min(30, val));
+                cleanupDaysInput.value = cleanupInactivityDays;
                 saveState();
             });
 
