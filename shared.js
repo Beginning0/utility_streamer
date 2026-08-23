@@ -28,6 +28,16 @@ let clipActionName = 'Crear Clip';
 let clipCommandCooldownSec = 45;
 let clipOnlyMods = true;
 
+// --- Moderadores detectados en vivo (rol 3 de Twitch) ---
+let moderatorUsers = new Set();
+
+// --- Comandos personalizados: [{ trigger, action }] (disparan acción Streamer.bot) ---
+let customCommands = [];
+let customCommandsEnabled = true;
+let customCommandsCooldownSec = 45;
+const CUSTOM_COMMAND_COOLDOWN_DEFAULT = 45; // segundos; se usa si un comando no tiene su propio cooldown
+let customCommandsOnlyMods = true;
+
 // --- Auto-limpieza de usuarios inactivos ---
 let autoCleanupEnabled = false;
 let cleanupInactivityDays = 3;
@@ -67,12 +77,15 @@ async function saveToDB() {
         });
         manualVoiceUsers.forEach(u => tx.objectStore('users').put({ username: u, _manual: true }));
         ttsBlockedUsers.forEach(u => tx.objectStore('users').put({ username: u, _blocked: true }));
+        moderatorUsers.forEach(u => tx.objectStore('users').put({ username: u, _mod: true }));
 
         const config = {
             selectedVoice, volume, voiceEnabled, rankForVoice, emoteNoiseThreshold,
             emoteNoiseReductionPercent, announcementBarEnabled, announcementBarMinChars,
             announcementBarDurationSec, clipCommandEnabled, clipActionName,
-            clipCommandCooldownSec, clipOnlyMods, autoCleanupEnabled, cleanupInactivityDays
+            clipCommandCooldownSec, clipOnlyMods, autoCleanupEnabled, cleanupInactivityDays,
+            customCommandsEnabled, customCommandsCooldownSec, customCommandsOnlyMods,
+            moderatorUsers: [...moderatorUsers], customCommands
         };
         Object.keys(config).forEach(key => tx.objectStore('config').put({ key, value: config[key] }));
     } catch (e) { console.warn('IndexedDB save falló:', e); }
@@ -90,6 +103,7 @@ async function loadFromDB() {
         });
         allUsers.filter(u => u._manual).forEach(u => manualVoiceUsers.add(u.username));
         allUsers.filter(u => u._blocked).forEach(u => ttsBlockedUsers.add(u.username));
+        allUsers.filter(u => u._mod).forEach(u => moderatorUsers.add(u.username));
 
         allConfig.forEach(c => {
             const key = c.key;
@@ -108,6 +122,15 @@ async function loadFromDB() {
             else if (key === 'clipOnlyMods') clipOnlyMods = c.value;
             else if (key === 'autoCleanupEnabled') autoCleanupEnabled = c.value;
             else if (key === 'cleanupInactivityDays') cleanupInactivityDays = c.value;
+            else if (key === 'customCommandsEnabled') customCommandsEnabled = c.value;
+            else if (key === 'customCommandsCooldownSec') customCommandsCooldownSec = c.value;
+            else if (key === 'customCommandsOnlyMods') customCommandsOnlyMods = c.value;
+            else if (key === 'moderatorUsers') moderatorUsers = new Set(c.value);
+            else if (key === 'customCommands') {
+                customCommands = Array.isArray(c.value) ? c.value.slice() : JSON.parse(c.value || '[]');
+                if (!Array.isArray(customCommands)) customCommands = [];
+                customCommands.forEach(c => { if (!c.cooldown || c.cooldown < 0) c.cooldown = CUSTOM_COMMAND_COOLDOWN_DEFAULT; });
+            }
         });
     } catch (e) { console.warn('IndexedDB no disponible:', e); }
 }
@@ -126,6 +149,11 @@ function saveState() {
 
     manualVoiceUsers.forEach(u => localStorage.setItem('manualVoiceUser:' + u, '1'));
     ttsBlockedUsers.forEach(u => localStorage.setItem('ttsBlockedUser:' + u, '1'));
+    moderatorUsers.forEach(u => localStorage.setItem('moderatorUser:' + u, '1'));
+    localStorage.setItem('customCommands', JSON.stringify(customCommands));
+    localStorage.setItem('customCommandsEnabled', customCommandsEnabled);
+    localStorage.setItem('customCommandsCooldownSec', String(customCommandsCooldownSec));
+    localStorage.setItem('customCommandsOnlyMods', customCommandsOnlyMods);
     localStorage.setItem('selectedVoice', selectedVoice);
     localStorage.setItem('volume', volume);
     localStorage.setItem('voiceEnabled', voiceEnabled);
@@ -154,10 +182,12 @@ function loadState() {
 
         manualVoiceUsers = new Set();
         ttsBlockedUsers = new Set();
+        moderatorUsers = new Set();
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             if (key && key.startsWith('manualVoiceUser:')) manualVoiceUsers.add(key.split(':')[1]);
             if (key && key.startsWith('ttsBlockedUser:')) ttsBlockedUsers.add(key.split(':')[1]);
+            if (key && key.startsWith('moderatorUser:')) moderatorUsers.add(key.split(':')[1]);
         }
 
         selectedVoice = localStorage.getItem('selectedVoice') || '';
@@ -175,6 +205,16 @@ function loadState() {
         clipOnlyMods = localStorage.getItem('clipOnlyMods') !== 'false';
         autoCleanupEnabled = localStorage.getItem('autoCleanupEnabled') === 'true';
         cleanupInactivityDays = parseInt(localStorage.getItem('cleanupInactivityDays')) || 3;
+        customCommandsEnabled = localStorage.getItem('customCommandsEnabled') !== 'false';
+        customCommandsCooldownSec = parseInt(localStorage.getItem('customCommandsCooldownSec')) || 45;
+        customCommandsOnlyMods = localStorage.getItem('customCommandsOnlyMods') !== 'false';
+        const rawCustom = localStorage.getItem('customCommands');
+        try { customCommands = rawCustom ? JSON.parse(rawCustom) : []; } catch (e) { customCommands = []; }
+        if (!Array.isArray(customCommands)) customCommands = [];
+        // Asegurar que cada comando tenga su cooldown (comandos viejos sin el campo)
+        customCommands.forEach(c => {
+            if (!c.cooldown || c.cooldown < 0) c.cooldown = CUSTOM_COMMAND_COOLDOWN_DEFAULT;
+        });
     } catch (e) {
         console.error('localStorage corrupto, usando IndexedDB:', e);
         usersData = {}; manualVoiceUsers = new Set(); ttsBlockedUsers = new Set();
@@ -255,6 +295,18 @@ function hasVoicePermission(displayName, platform) {
     if (userRankIndex === -1 || requiredRankIndex === -1) return false;
 
     return userRankIndex <= requiredRankIndex;
+}
+
+// --- Moderador detectado en vivo (rol 3 de Twitch) ---
+function isModerator(username) {
+    if (!username) return false;
+    return moderatorUsers.has(username.toLowerCase());
+}
+
+// --- Buscar un comando personalizado por su palabra activadora ---
+function findCustomCommand(trigger) {
+    const lower = (trigger || '').toLowerCase();
+    return customCommands.find(c => c && c.trigger.toLowerCase() === lower);
 }
 
 // --- Limpieza de usuarios inactivos ---

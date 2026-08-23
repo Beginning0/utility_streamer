@@ -70,6 +70,7 @@
         let announcementActive = false;
         let sbClient = null;
         let lastClipCommandTimestamp = 0;
+        let lastCustomCommandTimestamp = 0;
 
         function setChatHiddenByTicker(isHidden) {
             chatEl.style.display = isHidden ? 'none' : 'flex';
@@ -399,12 +400,61 @@
             }
         }
 
+        // Ejecuta una acción de Streamer.bot para un comando personalizado
+        async function triggerCustomAction(source, displayName, custom) {
+            const actionName = (custom && custom.action || '').trim();
+            const triggerName = (custom && custom.trigger || '').trim();
+            if (!actionName) {
+                addMessage('Sistema', 'Bot', 'Esa accion no tiene nombre configurado.', [], [], '#f04747', '');
+                return;
+            }
+
+            if (!sbClient) {
+                addMessage('Sistema', 'Bot', 'No hay connexion activa con Streamer.bot.', [], [], '#f04747', '');
+                return;
+            }
+
+            // Cooldown CONFIGURABLE POR COMANDO (por defecto CUSTOM_COMMAND_COOLDOWN_DEFAULT)
+            const cooldownSec = (custom && custom.cooldown && custom.cooldown > 0) ? custom.cooldown : CUSTOM_COMMAND_COOLDOWN_DEFAULT;
+            const now = Date.now();
+            const cooldownMs = cooldownSec * 1000;
+            const elapsed = now - lastCustomCommandTimestamp;
+            if (elapsed < cooldownMs) {
+                const secondsLeft = Math.ceil((cooldownMs - elapsed) / 1000);
+                addMessage('Sistema', 'Bot', `Cooldown de ${triggerName}: espera ${secondsLeft}s.`, [], [], '#faa61a', '');
+                return;
+            }
+
+            try {
+                await sbClient.doAction({ name: actionName }, { source, requestedBy: displayName });
+                lastCustomCommandTimestamp = now;
+                addMessage('Sistema', 'Bot', `Comando "${triggerName}" ejecutado por ${displayName}.`, [], [], '#43b581', '');
+            } catch (error) {
+                console.error('Error ejecutando accion del comando:', error);
+                addMessage('Sistema', 'Bot', `No se pudo ejecutar la accion "${actionName}".`, [], [], '#f04747', '');
+            }
+        }
+
         function processCommand(platform, displayName, message, isOwner, eventData = {}) { 
-            const [command, ...args] = message.split(' '); 
-            const input = args.join(' ').trim(); 
-            const lowerInput = input.toLowerCase(); 
-            
-            if (command.toLowerCase() === '!rank' || command.toLowerCase() === '!puntos') { 
+            const [command, ...args] = message.split(' ');
+            const input = args.join(' ').trim();
+            const lowerInput = input.toLowerCase();
+
+            // Comandos personalizados: disparan una acción de Streamer.bot (igual que !clip)
+            if (customCommandsEnabled) {
+                const custom = findCustomCommand(command);
+                if (custom) {
+                    const puedeUsar = isOwner || !!eventData.isModerator || isModerator(displayName);
+                    if (customCommandsOnlyMods && !puedeUsar) {
+                        addMessage('Sistema', 'Bot', `${displayName}, no tienes permiso para usar ${custom.trigger}.`, [], [], '#f04747', '');
+                        return;
+                    }
+                    triggerCustomAction(platform, displayName, custom);
+                    return;
+                }
+            }
+
+            if (command.toLowerCase() === '!rank' || command.toLowerCase() === '!puntos') {
                 const userToCheck = input || displayName; 
                 const userData = getUserData(userToCheck, platform); 
                 const reply = `${userData.displayName}, es ${userData.rank} con ${userData.points} puntos.`; 
@@ -580,10 +630,21 @@
                     
                     let eventData, source; 
                     try { 
-                        if (data.event.source === 'Twitch' && data.event.type === 'ChatMessage') { 
-                            eventData = data.data.message; 
-                            source = 'Twitch'; 
-                        } else if (data.event.source === 'YouTube' && data.event.type === 'Message') { 
+                        if (data.event.source === 'Twitch' && data.event.type === 'ChatMessage') {
+                            // Streamer.bot 1.5.x pone el texto en data.text y los datos de
+                            // user en data.user; NO existe data.data.message. Construir el
+                            // objeto explícitamente para que encaje con el resto del flujo.
+                            eventData = {
+                                displayName: data.data.user.name,
+                                message: data.data.text,
+                                badges: data.data.user.badges || [],
+                                emotes: data.data.emotes || [],
+                                color: data.data.user.color || '#FF0000',
+                                isBroadcaster: data.data.user.role === 4,
+                                profileImageUrl: ''
+                            };
+                            source = 'Twitch';
+                        } else if (data.event.source === 'YouTube' && data.event.type === 'Message') {
                             eventData = { 
                                 ...data.data.user, 
                                 ...data.data, 
@@ -598,12 +659,21 @@
                         return; 
                     } 
                     
-                    const { displayName, message, badges = [], emotes = [], color = '#FF0000', isBroadcaster, isOwner, isModerator } = eventData;
+                    const { displayName, message, badges = [], emotes = [], color = '#FF0000', isBroadcaster } = eventData;
 
-                    // FIX: Streamer.bot no envía isOwner/isModerator para Twitch, extraer de user.role
+                    // FIX: Streamer.bot no envía isOwner/isModerator para Twitch, extraer de user.role.
+                    // Se declaran como `let` porque se reasignan (no pueden ser const en la destrucción).
+                    let isOwner = undefined;
+                    let isModerator = undefined;
                     const userRole = data.data.user?.role;
                     if (isOwner === undefined) isOwner = userRole === 4;
                     if (isModerator === undefined) isModerator = userRole === 3;
+
+                    // Persistir moderadores detectados en vivo (rol 3) para mostrarlos en el panel
+                    if (isModerator && !moderatorUsers.has(displayName.toLowerCase())) {
+                        moderatorUsers.add(displayName.toLowerCase());
+                        window.saveTimeout = setTimeout(() => saveState(), 2000);
+                    }
 
                     if (!displayName || !message) return; 
                     
